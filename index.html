@@ -1,0 +1,2177 @@
+<!DOCTYPE html>
+<html lang="bn" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ZenvX Study - Super EdTech App</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0b0f19">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- MathLive: structured math input with a single native cursor and vertical fraction navigation -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mathlive@0.104.2/dist/mathlive-static.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/mathlive@0.104.2"></script>
+  <!-- KaTeX remains for formatted AI responses -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      font-family: 'Inter', 'Hind Siliguri', sans-serif;
+      background-color: #090d16;
+      color: #f8fafc;
+      height: 100dvh;
+      width: 100vw;
+      overflow: hidden;
+      margin: 0;
+    }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* ================= CALCULATOR THEMES (30+ Style Multi-Theme Support) ================= */
+    .calc-theme-dark {
+      --calc-bg: #18191e;
+      --lcd-bg: #d8e4e0;
+      --lcd-text: #111827;
+      --btn-func: #575860;
+      --btn-func-text: #ffffff;
+      --btn-num: #2c2d35;
+      --btn-num-text: #ffffff;
+      --btn-op: #575860;
+      --shift-color: #facc15;
+      --alpha-color: #a78bfa;
+    }
+
+    .calc-theme-emerald {
+      --calc-bg: #052e16;
+      --lcd-bg: #dcfce7;
+      --lcd-text: #064e3b;
+      --btn-func: #14532d;
+      --btn-func-text: #ecfdf5;
+      --btn-num: #064e3b;
+      --btn-num-text: #ffffff;
+      --btn-op: #15803d;
+      --shift-color: #fde047;
+      --alpha-color: #67e8f9;
+    }
+
+    .calc-theme-light {
+      --calc-bg: #e2e8f0;
+      --lcd-bg: #cbd5e1;
+      --lcd-text: #0f172a;
+      --btn-func: #94a3b8;
+      --btn-func-text: #0f172a;
+      --btn-num: #ffffff;
+      --btn-num-text: #0f172a;
+      --btn-op: #cbd5e1;
+      --shift-color: #d97706;
+      --alpha-color: #7c3aed;
+    }
+
+    .calc-theme-cyber {
+      --calc-bg: #090a10;
+      --lcd-bg: #111827;
+      --lcd-text: #38bdf8;
+      --btn-func: #1e293b;
+      --btn-func-text: #38bdf8;
+      --btn-num: #0f172a;
+      --btn-num-text: #f8fafc;
+      --btn-op: #334155;
+      --shift-color: #f59e0b;
+      --alpha-color: #ec4899;
+    }
+
+    #calcModule {
+      background-color: var(--calc-bg);
+    }
+
+    #calcLcdScreen {
+      background-color: var(--lcd-bg);
+      color: var(--lcd-text);
+    }
+
+    .c-cell {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      height: 100%;
+    }
+
+    .c-sub {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 3px;
+      font-size: 8.5px;
+      line-height: 10px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .s-lbl { color: var(--shift-color); }
+    .a-lbl { color: var(--alpha-color); }
+
+    .c-key {
+      width: 100%;
+      flex: 1;
+      border-radius: 9px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 0 rgba(0,0,0,0.45);
+      transition: transform 0.08s ease, filter 0.1s ease;
+    }
+
+    .c-key:active {
+      transform: translateY(1.5px);
+      filter: brightness(1.18);
+    }
+
+    .k-func { background-color: var(--btn-func); color: var(--btn-func-text); font-size: 12px; }
+    .k-num  { background-color: var(--btn-num);  color: var(--btn-num-text);  font-size: 17px; }
+    .k-op   { background-color: var(--btn-op);   color: var(--btn-func-text); font-size: 17px; }
+    .k-shift { background-color: #eab308; color: #111827; font-size: 11px; }
+    .k-alpha { background-color: #7c3aed; color: #ffffff; font-size: 11px; }
+    .k-orange { background-color: #ea8a35; color: #111827; font-size: 15px; font-weight: 800; }
+
+    /* A single structured math editor owns the cursor and fraction navigation. */
+    #calcMathField {
+      display: block; width: 100%; min-height: 54px; max-height: 100%; overflow-x: auto;
+      background: transparent; color: var(--lcd-text); font-size: clamp(1.2rem, 4.5vw, 1.8rem);
+      border: 0; outline: 0; padding: 4px 2px; --caret-color: #ef4444; --selection-background-color: rgba(59,130,246,.28);
+      --contains-highlight-background-color: rgba(245,158,11,.18);
+    }
+    #calcMathField::part(virtual-keyboard-toggle), #calcMathField::part(menu-toggle) { display:none; }
+    body.shorts-mode #appHeader, body.shorts-mode > nav, body.shorts-mode #socialSubTabs { display:none !important; }
+    body.shorts-mode main { min-height:0; }
+    body.shorts-mode #socialModule { position:fixed; inset:0; z-index:70; height:100dvh; width:100vw; }
+    body.shorts-mode #shortsView { height:100dvh; }
+    .shorts-container { height:100%; overscroll-behavior-y:contain; touch-action:pan-y; }
+    .short-slide { height:100%; min-height:100%; }
+    .yt-results { padding:0 !important; }
+    .yt-video-row { display:grid; grid-template-columns:minmax(0, 1fr); gap:0; border-bottom:1px solid #272727; padding-bottom:14px; margin-bottom:14px; }
+    .yt-thumb-wrap { position:relative; width:100%; aspect-ratio:16/9; background:#000; overflow:hidden; }
+    .yt-thumb-wrap img { display:block; width:100%; height:100%; object-fit:cover; }
+    .yt-play-badge { position:absolute; right:10px; bottom:10px; background:rgba(0,0,0,.78); border-radius:5px; padding:4px 7px; color:#fff; font-size:11px; }
+    .yt-video-meta { display:flex; gap:10px; padding:10px 12px 0; }
+    .yt-channel-dot { width:36px; height:36px; flex:0 0 36px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:#383838; color:#fff; font-weight:700; }
+    .yt-video-title { color:#f1f1f1; font-size:14px; line-height:1.4; font-weight:500; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .yt-video-channel { color:#aaa; font-size:12px; margin-top:5px; }
+    .shorts-top-overlay { position:absolute; z-index:5; top:0; left:0; right:0; padding:max(10px, env(safe-area-inset-top)) 12px 14px; display:flex; align-items:center; gap:10px; background:linear-gradient(to bottom,rgba(0,0,0,.72),transparent); }
+    .shorts-top-overlay input { min-width:0; flex:1; background:rgba(20,20,20,.72); color:white; border:1px solid rgba(255,255,255,.2); border-radius:20px; padding:9px 13px; font-size:13px; }
+    .shorts-top-overlay button { color:white; background:rgba(0,0,0,.35); border-radius:50%; width:36px; height:36px; flex-shrink:0; }
+    .shorts-info { position:absolute; z-index:4; left:12px; right:66px; bottom:max(22px,env(safe-area-inset-bottom)); pointer-events:none; color:white; text-shadow:0 1px 3px #000; }
+    .shorts-info p:first-child { font-weight:700; font-size:13px; margin-bottom:7px; }
+    .shorts-info p:last-child { font-size:13px; line-height:1.35; }
+
+
+    /* Focused, immersive AI workspace */
+    body.ai-mode #appHeader, body.ai-mode > nav { display: none !important; }
+    body.ai-mode #aiModule { height: 100%; width: 100%; }
+    body.ai-mode #aiModule > .ai-topbar { padding-top: max(10px, env(safe-area-inset-top)); }
+    body.ai-mode #aiModule > .ai-composer { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+    body.ai-mode #aiModule .ai-suggestions { justify-content: flex-start; }
+    #aiChatStream { overscroll-behavior: contain; }
+    .ai-answer { min-width: 0; overflow-wrap: anywhere; white-space: normal; line-height: 1.8; }
+    .ai-answer p { margin: .45rem 0; }
+    .ai-answer h1,.ai-answer h2,.ai-answer h3 { font-weight: 700; color: #67e8f9; margin: .8rem 0 .4rem; }
+    .ai-answer ul,.ai-answer ol { padding-left: 1.4rem; margin: .45rem 0; }
+    .ai-answer ul { list-style: disc; } .ai-answer ol { list-style: decimal; }
+    .ai-answer li { margin: .2rem 0; }
+    .ai-answer .math-display { display: block; max-width: 100%; overflow-x: auto; overflow-y: hidden; padding: .55rem .25rem; margin: .55rem 0; text-align: center; background: rgba(2,6,23,.32); border-radius: .5rem; }
+    .ai-answer .katex-display { margin: .2rem 0; }
+    .ai-answer .katex { font-size: 1.04em; }
+    .ai-answer code { font-family: 'JetBrains Mono', monospace; background: #0b1220; border-radius: .25rem; padding: .08rem .25rem; color: #fde68a; }
+    #aiUserInput { user-select: text; }
+    /* Shorts Vertical Snap */
+    .shorts-container {
+      scroll-snap-type: y mandatory;
+      overflow-y: scroll;
+      height: calc(100dvh - 112px);
+    }
+    .short-slide {
+      scroll-snap-align: start;
+      scroll-snap-stop: always;
+      height: calc(100dvh - 112px);
+    }
+  </style>
+</head>
+<body class="flex flex-col justify-between bg-[#090d16]">
+
+  <!-- ================= TOP APP HEADER ================= -->
+  <header id="appHeader" class="h-14 px-4 bg-[#0f1624] border-b border-slate-800 flex items-center justify-between z-30 shrink-0">
+    <div class="flex items-center gap-2.5">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/20">
+        <i class="fa-solid fa-graduation-cap text-white text-base"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-base tracking-tight text-white">ZenvX Study</h1>
+        <p class="text-[10px] text-cyan-400 -mt-0.5 font-medium">Sci-Calc • ZenvXai • Messenger • EduTube</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button onclick="openCalculatorFullScreen()" class="px-3 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-1.5">
+        <i class="fa-solid fa-calculator"></i>
+        <span>991EX Calc</span>
+      </button>
+      <button onclick="toggleModal('apiModal', true)" class="w-9 h-9 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 flex items-center justify-center">
+        <i class="fa-solid fa-gear text-sm"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= MAIN VIEWPORT ================= -->
+  <main class="flex-1 relative overflow-hidden">
+
+    <!-- =========================================================================
+         MODULE 1: EXACT REPLICA FULL-SCREEN SCIENTIFIC CALCULATOR (IMAGE 1 & 2)
+         ========================================================================= -->
+    <section id="calcModule" class="calc-theme-dark fixed inset-0 z-50 hidden flex-col justify-between p-1.5">
+
+      <!-- Top Status Row: Back Button + NORM MATH DECI + Status Badges -->
+      <div class="flex items-center justify-between px-2 py-1 text-[10px] font-mono font-bold text-slate-300 shrink-0">
+        <div class="flex items-center gap-2">
+          <button onclick="closeCalculatorFullScreen()" class="px-2 py-0.5 rounded bg-slate-800 text-cyan-400 border border-slate-700 flex items-center gap-1 text-[11px] font-sans">
+            <i class="fa-solid fa-arrow-left"></i> Back
+          </button>
+          <span id="statusNorm">NORM</span>
+          <span id="statusMath">MATH</span>
+          <span id="statusDeci">DECI</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="badgeShift" class="px-1.5 rounded bg-amber-500 text-black hidden">SHIFT</span>
+          <span id="badgeAlpha" class="px-1.5 rounded bg-purple-600 text-white hidden">ALPHA</span>
+          <span id="badgeHyp" class="px-1.5 rounded bg-cyan-500 text-black hidden">HYP</span>
+          <span id="badgeMemory" class="text-emerald-400">M=0</span>
+        </div>
+      </div>
+
+      <!-- Large Natural Textbook LCD Display (Exact Match to Image 2) -->
+      <div id="calcLcdScreen" class="w-full h-[23vh] rounded-xl p-3 flex flex-col justify-between shadow-inner border border-slate-700/50 relative overflow-hidden shrink-0">
+        <!-- MathLive owns one structured cursor; arrows can move between numerator/denominator. -->
+        <div class="flex items-start justify-between w-full min-w-0 gap-2">
+          <div class="flex-1 min-w-0 overflow-x-auto no-scrollbar"><math-field id="calcMathField" aria-label="গাণিতিক এক্সপ্রেশন লিখুন" virtual-keyboard-mode="manual" smart-mode="false"></math-field></div>
+          <span id="calcSubModeInfo" class="text-[10px] font-mono opacity-75 shrink-0"></span>
+        </div>
+
+        <!-- Middle 3-dots & Live Formatted Output on Right -->
+        <div class="flex items-center justify-between w-full my-auto">
+          <button onclick="openCalcModal('history')" class="text-slate-600 hover:text-slate-900 px-1">
+            <i class="fa-solid fa-ellipsis-vertical text-base"></i>
+          </button>
+          <div id="calcLiveOutput" class="text-2xl sm:text-3xl font-mono font-semibold tracking-tight text-right truncate max-w-[88%]">
+            0
+          </div>
+        </div>
+      </div>
+
+      <!-- Middle Action & Tool Bar: Menu, Sigma, Settings, Theme, DEG, MORE, SCAN -->
+      <div class="flex items-center justify-between gap-1 px-1 py-1.5 shrink-0">
+        <button onclick="openCalcModal('history')" class="w-8 h-7 rounded bg-slate-800/80 border border-purple-500/40 text-purple-400 flex items-center justify-center text-xs" title="History">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <button onclick="openCalcModal('constants')" class="w-8 h-7 rounded-full border border-slate-500 text-white flex items-center justify-center text-xs font-serif" title="Scientific Constants">
+          &Sigma;
+        </button>
+        <button onclick="openCalcModal('mode')" class="w-8 h-7 rounded-full border border-slate-500 text-white flex items-center justify-center text-xs" title="Settings">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+        <button onclick="cycleCalculatorTheme()" class="w-8 h-7 rounded-full border border-slate-500 text-amber-300 flex items-center justify-center text-xs" title="Change Calculator Theme (30+ Style)">
+          <i class="fa-solid fa-palette"></i>
+        </button>
+        <button id="btnDegRad" onclick="toggleCalcAngleUnit()" class="px-2.5 h-7 rounded border border-slate-500 text-white font-bold text-xs">
+          DEG
+        </button>
+        <button onclick="openCalcModal('more')" class="px-2.5 h-7 rounded border border-purple-500/60 text-purple-300 font-bold text-xs">
+          MORE
+        </button>
+        <button onclick="scanMathFromCalculator()" class="px-2.5 h-7 rounded border border-slate-400 bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5">
+          <i class="fa-solid fa-camera text-cyan-400"></i> SCAN
+        </button>
+      </div>
+
+      <!-- ================= 6-COLUMN SCIENTIFIC KEYPAD + 5-COLUMN NUMBER PAD ================= -->
+      <div class="flex-1 flex flex-col justify-between gap-1 overflow-hidden">
+
+        <!-- TOP 6x6 SCIENTIFIC GRID -->
+        <div class="grid grid-cols-6 grid-rows-6 gap-x-1.5 gap-y-0.5 flex-[1.45]">
+
+          <!-- ROW 1: SHIFT, ALPHA, Left, Right, MODE, 2nd -->
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl"></span></div>
+            <button onclick="pressKey('SHIFT')" class="c-key k-shift">SHIFT</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="a-lbl"></span></div>
+            <button onclick="pressKey('ALPHA')" class="c-key k-alpha">ALPHA</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span></span></div>
+            <button onclick="pressKey('LEFT')" class="c-key k-func"><i class="fa-solid fa-caret-left text-base"></i></button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span></span></div>
+            <button onclick="pressKey('RIGHT')" class="c-key k-func"><i class="fa-solid fa-caret-right text-base"></i></button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">CLR</span></div>
+            <button onclick="pressKey('MODE')" class="c-key k-func">MODE</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span></span></div>
+            <button onclick="pressKey('2ND')" class="c-key k-func italic">2nd</button>
+          </div>
+
+          <!-- ROW 2: CALC, ∫dx, Up, Down, x⁻¹, Log_x y -->
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">SOLVE</span><span class="a-lbl">=</span></div>
+            <button onclick="pressKey('CALC')" class="c-key k-func">CALC</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">d/dx</span><span class="a-lbl">:</span></div>
+            <button onclick="pressKey('INT')" class="c-key k-func">&int;dx</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span></span></div>
+            <button onclick="pressKey('UP')" class="c-key k-func"><i class="fa-solid fa-caret-up text-base"></i></button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span></span></div>
+            <button onclick="pressKey('DOWN')" class="c-key k-func"><i class="fa-solid fa-caret-down text-base"></i></button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">x!</span></div>
+            <button onclick="pressKey('INV')" class="c-key k-func">x<sup>-1</sup></button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">&Sigma;</span><span class="a-lbl">&prod;</span></div>
+            <button onclick="pressKey('LOGXY')" class="c-key k-func">Log<sub>x</sub>y</button>
+          </div>
+
+          <!-- ROW 3: x/y, √x, x², x^y, Log, Ln -->
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">a b/c</span><span class="a-lbl">&divide;R</span></div>
+            <button onclick="pressKey('FRAC')" class="c-key k-func"><span class="leading-none text-[11px]">x<br>&mdash;<br>y</span></button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl"><sup>3</sup>&radic;x</span><span class="a-lbl">mod</span></div>
+            <button onclick="pressKey('SQRT')" class="c-key k-func">&radic;x</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">x<sup>3</sup></span><span class="a-lbl">dec</span></div>
+            <button onclick="pressKey('SQ')" class="c-key k-func">x<sup>2</sup></button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl"><sup>x</sup>&radic;y</span><span class="a-lbl">hex</span></div>
+            <button onclick="pressKey('POW')" class="c-key k-func">x<sup>y</sup></button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">10<sup>x</sup></span><span class="a-lbl">bin</span></div>
+            <button onclick="pressKey('LOG')" class="c-key k-func">Log</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">e<sup>x</sup></span><span class="a-lbl">t</span></div>
+            <button onclick="pressKey('LN')" class="c-key k-func">Ln</button>
+          </div>
+
+          <!-- ROW 4: (-), ° ' ", hyp, Sin, Cos, Tan -->
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">&angle;</span><span class="a-lbl">a</span></div>
+            <button onclick="pressKey('NEG')" class="c-key k-func">(&minus;)</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">FACT</span><span class="a-lbl">b</span></div>
+            <button onclick="pressKey('DMS')" class="c-key k-func">&deg; ' "</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">|x|</span><span class="a-lbl">c</span></div>
+            <button onclick="pressKey('HYP')" class="c-key k-func">hyp</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">Sin<sup>-1</sup></span><span class="a-lbl">d</span></div>
+            <button onclick="pressKey('SIN')" class="c-key k-func">Sin</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">Cos<sup>-1</sup></span><span class="a-lbl">e</span></div>
+            <button onclick="pressKey('COS')" class="c-key k-func">Cos</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">Tan<sup>-1</sup></span><span class="a-lbl">f</span></div>
+            <button onclick="pressKey('TAN')" class="c-key k-func">Tan</button>
+          </div>
+
+          <!-- ROW 5: RCL, ENG, (, ), S⇔D, M+ -->
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">STO</span><span class="a-lbl">CLRv</span></div>
+            <button onclick="pressKey('RCL')" class="c-key k-func">RCL</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">i</span><span class="a-lbl">Cot</span></div>
+            <button onclick="pressKey('ENG')" class="c-key k-func">ENG</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">%</span><span class="a-lbl">Cot<sup>-1</sup></span></div>
+            <button onclick="pressKey('LPAREN')" class="c-key k-func">(</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">,</span><span class="a-lbl">x</span></div>
+            <button onclick="pressKey('RPAREN')" class="c-key k-func">)</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">a/b&harr;d/c</span><span class="a-lbl">y</span></div>
+            <button onclick="pressKey('SD')" class="c-key k-func">S&harr;D</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">M&minus;</span><span class="a-lbl">m</span></div>
+            <button onclick="pressKey('MPLUS')" class="c-key k-func">M+</button>
+          </div>
+
+          <!-- ROW 6 LABELS BAR (CONST, CONV, SI, Limit, ∞, CLR ALL) -->
+          <div class="col-span-6 flex items-center justify-between px-2 pt-1 text-[9.5px] font-bold">
+            <button onclick="openCalcModal('constants')" class="s-lbl hover:underline">CONST</button>
+            <button onclick="openCalcModal('conversions')" class="s-lbl hover:underline">CONV</button>
+            <button onclick="openCalcModal('si')" class="a-lbl hover:underline">SI</button>
+            <button onclick="pressKey('LIMIT')" class="s-lbl hover:underline">Limit</button>
+            <button onclick="pressKey('INF')" class="a-lbl hover:underline">&infin;</button>
+            <button onclick="calcResetAll()" class="s-lbl hover:underline">CLR ALL</button>
+          </div>
+        </div>
+
+        <!-- BOTTOM 4x5 NUMERIC & ARITHMETIC PAD (Exact Match to Image 2) -->
+        <div class="grid grid-cols-5 grid-rows-4 gap-x-1.5 gap-y-1 flex-1">
+
+          <!-- Num Row 1: 7, 8, 9, DEL (Orange), AC (Orange) -->
+          <div class="c-cell">
+            <button onclick="pressKey('7')" class="c-key k-num">7</button>
+          </div>
+          <div class="c-cell">
+            <button onclick="pressKey('8')" class="c-key k-num">8</button>
+          </div>
+          <div class="c-cell">
+            <button onclick="pressKey('9')" class="c-key k-num">9</button>
+          </div>
+          <div class="c-cell">
+            <button onclick="pressKey('DEL')" class="c-key k-orange"><i class="fa-solid fa-delete-left"></i></button>
+          </div>
+          <div class="c-cell">
+            <button onclick="pressKey('AC')" class="c-key k-orange">AC</button>
+          </div>
+
+          <!-- Num Row 2: 4, 5, 6, ×, ÷ (with MATRIX, VECTOR, FUNC, nPr, nCr sub-labels) -->
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">MATRIX</span><span class="a-lbl">::</span></div>
+            <button onclick="pressKey('4')" class="c-key k-num">4</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">VECTOR</span></div>
+            <button onclick="pressKey('5')" class="c-key k-num">5</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">FUNC</span><span class="a-lbl">HELP</span></div>
+            <button onclick="pressKey('6')" class="c-key k-num">6</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">nPr</span><span class="a-lbl">GCD</span></div>
+            <button onclick="pressKey('MUL')" class="c-key k-op">&times;</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">nCr</span><span class="a-lbl">LCM</span></div>
+            <button onclick="pressKey('DIV')" class="c-key k-op">&divide;</button>
+          </div>
+
+          <!-- Num Row 3: 1, 2, 3, +, - (with STAT, CMPLX, DISTR, Pol, Rec sub-labels) -->
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">STAT</span></div>
+            <button onclick="pressKey('1')" class="c-key k-num">1</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">CMPLX</span></div>
+            <button onclick="pressKey('2')" class="c-key k-num">2</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">DISTR</span></div>
+            <button onclick="pressKey('3')" class="c-key k-num">3</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">Pol</span><span class="a-lbl">Ceil</span></div>
+            <button onclick="pressKey('ADD')" class="c-key k-op">+</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">Rec</span><span class="a-lbl">Floor</span></div>
+            <button onclick="pressKey('SUB')" class="c-key k-op">&minus;</button>
+          </div>
+
+          <!-- Num Row 4: 0, ., Exp, Ans, = (with COPY, Ran#, π, e, PreAns, History) -->
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">COPY</span><span class="a-lbl">PASTE</span></div>
+            <button onclick="pressKey('0')" class="c-key k-num">0</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">Ran#</span><span class="a-lbl">RanInt</span></div>
+            <button onclick="pressKey('DOT')" class="c-key k-num">.</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">&pi;</span><span class="a-lbl">e</span></div>
+            <button onclick="pressKey('EXP')" class="c-key k-num">Exp</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="a-lbl">PreAns</span></div>
+            <button onclick="pressKey('ANS')" class="c-key k-num">Ans</button>
+          </div>
+          <div class="c-cell">
+            <div class="c-sub"><span class="s-lbl">History</span></div>
+            <button onclick="pressKey('EQ')" class="c-key k-op">=</button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- CALCULATOR POPUP DRAWER (Constants, Conversions, Matrix, Equation Solver, History) -->
+      <div id="calcPopupModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="w-full max-w-md max-h-[80vh] rounded-2xl bg-[#18191e] border border-slate-700 flex flex-col overflow-hidden">
+          <div class="px-4 py-3 bg-[#23252d] border-b border-slate-700 flex items-center justify-between">
+            <h3 id="calcPopupTitle" class="font-bold text-sm text-amber-400">Calculator Menu</h3>
+            <button onclick="closeCalcModal()" class="w-7 h-7 rounded-full bg-slate-800 text-white"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div id="calcPopupBody" class="p-4 overflow-y-auto space-y-2 text-xs text-slate-200">
+            <!-- Dynamically filled -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- =========================================================================
+         MODULE 2: STUDY WITH ZenvXai (PRO MULTIMODAL AI TUTOR)
+         ========================================================================= -->
+    <section id="aiModule" class="h-full flex flex-col justify-between bg-[#090d16]">
+      <div class="ai-topbar px-4 py-2.5 bg-[#111827] border-b border-slate-800 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2">
+          <button onclick="leaveAiWorkspace()" aria-label="Back to app" class="w-9 h-9 rounded-xl bg-slate-800 text-slate-200 flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></button>
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="font-semibold text-xs text-slate-200">Study with <strong class="text-cyan-400">ZenvXai Pro</strong></span>
+        </div>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <span class="text-[11px] text-slate-400">Auto-Prompt Engine</span>
+          <input id="autoPromptToggle" type="checkbox" checked class="sr-only peer">
+          <div class="w-8 h-4 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all relative peer-checked:bg-blue-600"></div>
+        </label>
+      </div>
+
+      <!-- Smart Academic Prompt Chips -->
+      <div class="ai-suggestions px-3 py-2 bg-[#0d1322] border-b border-slate-800 flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0">
+        <button onclick="triggerSmartPrompt('পদার্থবিজ্ঞানের গতিবিদ্যা ও প্রাসের সূত্রগুলো ধাপে ধাপে প্রতিপাদনসহ বুঝিয়ে দাও।')" class="px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs whitespace-nowrap">⚛️ পদার্থবিজ্ঞান সূত্র ও অংক</button>
+        <button onclick="triggerSmartPrompt('ক্যালকুলাসের অন্তরীকরণ ও যোগজীকরণের মূল নিয়মগুলো উদাহরণসহ দাও।')" class="px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs whitespace-nowrap">📐 ক্যালকুলাস ও উচ্চতর গণিত</button>
+        <button onclick="triggerSmartPrompt('রসায়নের জৈব যৌগের বিক্রিয়া মনে রাখার সহজ কৌশল ও শর্ট নোট দাও।')" class="px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs whitespace-nowrap">🧪 রসায়ন শর্ট টেকনিক</button>
+      </div>
+
+      <!-- AI Conversation Container -->
+      <div id="aiChatStream" class="flex-1 p-4 overflow-y-auto space-y-4">
+        <div class="flex items-start gap-3">
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-robot text-white text-xs"></i>
+          </div>
+          <div class="max-w-[88%] rounded-2xl rounded-tl-none bg-[#151f32] border border-slate-800 p-3.5 text-xs text-slate-200 leading-relaxed space-y-1.5">
+            <div class="font-bold text-cyan-400">ZenvX Study AI Mentor</div>
+            <p>তুমি যেকোনো এলোমেলো প্রশ্ন লিখলে বা খাতার অংকের ছবি তুললে আমার <strong>Auto-Prompt Engine</strong> সেটিকে সাজিয়ে একদম বইয়ের ভাষায় ধাপে ধাপে উত্তর দেবে।</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Attachment Preview Bar -->
+      <div id="aiAttachmentPreview" class="hidden px-4 py-2 bg-[#162033] border-t border-slate-700 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <img id="previewImgThumb" src="" class="w-10 h-10 rounded-lg object-cover hidden border border-cyan-400">
+          <div>
+            <p id="attachmentName" class="text-xs font-semibold text-white truncate max-w-[220px]">attachment</p>
+            <p id="attachmentSize" class="text-[10px] text-emerald-400">Ready for ZenvXai Analysis</p>
+          </div>
+        </div>
+        <button onclick="clearAiAttachment()" class="w-7 h-7 rounded-full bg-slate-800 text-slate-300"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- AI Input Bar -->
+      <div class="ai-composer p-3 bg-[#0f1624] border-t border-slate-800 shrink-0">
+        <div class="flex items-end gap-2 bg-[#182235] border border-slate-700 rounded-2xl p-2">
+          <button onclick="openAiCameraModal()" class="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center shrink-0" title="ক্যামেরা দিয়ে অংক স্ক্যান করুন">
+            <i class="fa-solid fa-camera"></i>
+          </button>
+          <button id="aiMicButton" type="button" onclick="toggleAiSpeechInput()" class="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-300 flex items-center justify-center shrink-0" title="কণ্ঠে প্রশ্ন বলুন" aria-label="কণ্ঠে প্রশ্ন বলুন"><i class="fa-solid fa-microphone"></i></button>
+          <label class="w-9 h-9 rounded-xl bg-purple-500/15 text-purple-400 flex items-center justify-center shrink-0 cursor-pointer" title="বড় ফাইল আপলোড করুন">
+            <i class="fa-solid fa-paperclip"></i>
+            <input type="file" class="hidden" accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,.pdf,.txt" onchange="handleLargeFileUpload(event)">
+          </label>
+          <textarea id="aiUserInput" rows="1" placeholder="প্রশ্ন লিখুন বা ছবি/ফাইল পাঠান..." class="flex-1 bg-transparent text-xs text-white placeholder-slate-400 focus:outline-none resize-none py-2"></textarea>
+          <button onclick="sendMessageToZenvXai()" class="w-10 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-paper-plane text-xs"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- =========================================================================
+         MODULE 3: SOCIAL HUB (MESSENGER + EDUTUBE + SHORTS)
+         ========================================================================= -->
+    <section id="socialModule" class="h-full hidden flex-col bg-[#090d16]">
+      <div id="socialSubTabs" class="px-3 py-2 bg-[#0f1624] border-b border-slate-800 flex items-center gap-2 shrink-0">
+        <button onclick="switchSocialSubTab('messenger')" id="subTabMessenger" class="flex-1 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-semibold flex items-center justify-center gap-1.5">
+          <i class="fa-brands fa-facebook-messenger"></i> মেসেঞ্জার
+        </button>
+        <button onclick="switchSocialSubTab('youtube')" id="subTabYoutube" class="flex-1 py-1.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold flex items-center justify-center gap-1.5">
+          <i class="fa-brands fa-youtube text-red-500"></i> EduTube
+        </button>
+        <button onclick="switchSocialSubTab('shorts')" id="subTabShorts" class="flex-1 py-1.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-bolt text-amber-400"></i> Shorts
+        </button>
+      </div>
+
+      <!-- Messenger View -->
+      <div id="messengerView" class="flex-1 flex flex-col overflow-hidden">
+        <!-- Active Teachers & Students Bar -->
+        <div class="px-3 py-2 bg-[#0d1422] border-b border-slate-800 flex items-center gap-3 overflow-x-auto no-scrollbar shrink-0">
+          <button onclick="selectChatContact('ফিজিক্স স্যার (ড. আরিফ)', 'অনলাইন • পদার্থবিজ্ঞান', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&q=80')" class="flex flex-col items-center gap-1 shrink-0">
+            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&q=80" class="w-10 h-10 rounded-full object-cover border-2 border-blue-500">
+            <span class="text-[10px] text-slate-200">ফিজিক্স স্যার</span>
+          </button>
+          <button onclick="selectChatContact('সাকিব স্যার (Math Mentor)', 'অনলাইন • উচ্চতর গণিত', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&q=80')" class="flex flex-col items-center gap-1 shrink-0">
+            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&q=80" class="w-10 h-10 rounded-full object-cover border-2 border-emerald-500">
+            <span class="text-[10px] text-slate-200">সাকিব স্যার</span>
+          </button>
+          <button onclick="selectChatContact('স্টুডেন্ট গ্রুপ ডিসকাশন', '১৮ জন অনলাইন', 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&q=80')" class="flex flex-col items-center gap-1 shrink-0">
+            <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&q=80" class="w-10 h-10 rounded-full object-cover border-2 border-purple-500">
+            <span class="text-[10px] text-slate-200">স্টাডি গ্রুপ</span>
+          </button>
+        </div>
+
+        <!-- Chat Header with Audio & Video Call Buttons -->
+        <div class="px-4 py-2 bg-[#121b2d] border-b border-slate-800 flex items-center justify-between shrink-0">
+          <div class="flex items-center gap-2.5">
+            <img id="activeChatAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&q=80" class="w-9 h-9 rounded-full object-cover">
+            <div>
+              <h3 id="activeChatName" class="text-xs font-bold text-white">ফিজিক্স স্যার (ড. আরিফ)</h3>
+              <p id="activeChatStatus" class="text-[10px] text-emerald-400">অনলাইন • পদার্থবিজ্ঞান</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <select id="onlineContactSelect" aria-label="অনলাইন ব্যবহারকারী নির্বাচন" class="max-w-[100px] rounded-lg bg-slate-800 border border-slate-600 text-white text-[10px] p-1" title="অনলাইন ব্যবহারকারী"><option value="">অনলাইন ইউজার</option></select>
+            <button onclick="startAudioCall()" class="w-9 h-9 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center">
+              <i class="fa-solid fa-phone"></i>
+            </button>
+            <button onclick="startVideoCall()" class="w-9 h-9 rounded-full bg-emerald-600/20 text-emerald-400 flex items-center justify-center">
+              <i class="fa-solid fa-video"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Chat Messages -->
+        <div id="messengerChatBox" class="flex-1 p-4 overflow-y-auto space-y-3">
+          <div class="flex items-end gap-2">
+            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&q=80" class="w-7 h-7 rounded-full object-cover">
+            <div class="max-w-[78%] rounded-2xl rounded-bl-none bg-[#1e293b] px-3.5 py-2 text-xs text-slate-100">
+              তোমাদের ক্যালকুলেটরে $\frac{1}{\pi^2}$-এর মান কত আসে চেক করেছো? কোনো সমস্যা হলে অডিও বা ভিডিও কল দাও।
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat Input -->
+        <div class="p-2.5 bg-[#0f1624] border-t border-slate-800 flex items-center gap-2 shrink-0">
+          <input id="messengerInput" type="text" placeholder="মেসেজ লিখুন..." onkeydown="if(event.key==='Enter') sendMessengerText()" class="flex-1 bg-[#1e293b] text-xs text-white rounded-full px-4 py-2.5 focus:outline-none border border-slate-700">
+          <button onclick="sendMessengerText()" class="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center">
+            <i class="fa-solid fa-paper-plane text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- EduTube View -->
+      <div id="youtubeView" class="flex-1 hidden flex-col overflow-hidden bg-[#0f0f0f]">
+        <div id="youtubeFeedList" onscroll="handleYoutubeInfiniteScroll(this)" class="flex-1 overflow-y-auto p-3 space-y-4"></div>
+      </div>
+
+      <!-- Shorts View -->
+      <div id="shortsView" class="flex-1 hidden flex flex-col bg-black relative overflow-hidden">
+        <div class="shorts-top-overlay">
+          <button onclick="switchSocialSubTab('youtube')" aria-label="Back to EduTube"><i class="fa-solid fa-arrow-left"></i></button>
+          <form class="flex-1 min-w-0" onsubmit="event.preventDefault(); searchYoutube(document.getElementById('shortsSearchInput').value); renderShortsFeed();"><input id="shortsSearchInput" aria-label="Shorts search" placeholder="ভিডিও বা Shorts খুঁজুন" /></form>
+          <button onclick="searchYoutube(document.getElementById('shortsSearchInput').value || youtubeQuery); renderShortsFeed();" aria-label="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
+        </div>
+        <div id="shortsFeedContainer" class="shorts-container no-scrollbar"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= BOTTOM NAVIGATION BAR ================= -->
+  <nav class="h-14 bg-[#0f1624] border-t border-slate-800 grid grid-cols-3 z-30 shrink-0">
+    <button onclick="switchMainTab('ai')" id="navBtnAi" class="flex flex-col items-center justify-center text-blue-400">
+      <i class="fa-solid fa-wand-magic-sparkles text-base"></i>
+      <span class="text-[10px] font-semibold mt-0.5">Study with ZenvXai</span>
+    </button>
+    <button onclick="openCalculatorFullScreen()" class="flex flex-col items-center justify-center text-amber-400">
+      <i class="fa-solid fa-calculator text-base"></i>
+      <span class="text-[10px] font-semibold mt-0.5">991EX Calculator</span>
+    </button>
+    <button onclick="switchMainTab('social')" id="navBtnSocial" class="flex flex-col items-center justify-center text-slate-400">
+      <i class="fa-solid fa-comments text-base"></i>
+      <span class="text-[10px] font-semibold mt-0.5">Social & EduTube</span>
+    </button>
+  </nav>
+
+
+  <!-- ================= FULL-SCREEN AUDIO CALL UI ================= -->
+  <div id="audioCallOverlay" class="fixed inset-0 bg-[#090d16] z-50 hidden flex-col items-center justify-between py-12 px-6">
+    <div class="text-center">
+      <span class="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 text-xs">ZenvX Study Voice Call</span>
+      <h2 id="audioCallTitle" class="text-xl font-bold text-white mt-3">ফিজিক্স স্যার (ড. আরিফ)</h2>
+      <p id="audioCallTimer" class="text-sm text-blue-400 font-mono mt-1">00:00</p>
+      <div class="mt-4 flex items-center justify-center gap-2">
+        <label for="ringtoneSelect" class="text-xs text-slate-300">রিংটোন</label>
+        <select id="ringtoneSelect" onchange="saveRingtoneChoice(this.value)" class="rounded-lg bg-slate-800 border border-slate-600 text-white text-xs p-2">
+          <option value="classic">Classic</option><option value="soft">Soft</option><option value="digital">Digital</option><option value="silent">Silent</option>
+        </select>
+        <button onclick="playRingtone(true)" class="rounded-lg bg-blue-600 px-3 py-2 text-xs text-white">টেস্ট</button>
+      </div>
+      <p id="callStatusMessage" role="status" class="mt-2 max-w-xs text-center text-xs text-amber-300">এটি বর্তমানে লোকাল কল UI; অন্য ব্যবহারকারীর সঙ্গে লাইভ কলের জন্য authenticated WebRTC signaling দরকার।</p>
+    </div>
+    <img id="audioCallAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&q=80" class="w-32 h-32 rounded-full object-cover border-4 border-blue-500 shadow-2xl">
+    <div class="flex items-center gap-6">
+      <button onclick="toggleAudioMute(this)" class="w-14 h-14 rounded-full bg-slate-800 text-white flex items-center justify-center text-lg"><i class="fa-solid fa-microphone"></i></button>
+      <button onclick="endActiveCall()" class="w-16 h-16 rounded-full bg-red-600 text-white flex items-center justify-center text-xl"><i class="fa-solid fa-phone-slash"></i></button>
+    </div>
+  </div>
+
+
+  <!-- ================= FULL-SCREEN HARDWARE VIDEO CALL UI ================= -->
+  <div id="videoCallOverlay" class="fixed inset-0 bg-black z-50 hidden flex-col justify-between">
+    <video id="liveVideoCallStream" autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover"></video>
+    <div class="relative z-10 p-4 bg-gradient-to-b from-black/80 to-transparent flex items-center justify-between">
+      <div>
+        <h3 id="videoCallPartner" class="text-sm font-bold text-white">ফিজিক্স স্যার (ড. আরিফ)</h3>
+        <p id="cameraStatusMessage" role="status" class="text-xs text-emerald-300">ক্যামেরা চালু করার অপেক্ষায়…</p>
+      </div>
+      <div class="w-24 h-32 rounded-xl overflow-hidden border-2 border-white/50 bg-slate-900">
+        <video id="remoteVideoCallStream" autoplay playsinline class="w-full h-full object-cover"></video>
+      </div>
+    </div>
+    <div class="relative z-10 p-6 bg-gradient-to-t from-black/90 to-transparent flex items-center justify-center gap-5">
+      <button onclick="toggleAudioMute(this)" class="w-12 h-12 rounded-full bg-white/20 text-white flex items-center justify-center"><i class="fa-solid fa-microphone"></i></button>
+      <button onclick="endActiveCall()" class="w-16 h-16 rounded-full bg-red-600 text-white flex items-center justify-center text-xl"><i class="fa-solid fa-phone-slash"></i></button>
+      <button onclick="switchCameraFacingMode()" class="w-12 h-12 rounded-full bg-white/20 text-white flex items-center justify-center"><i class="fa-solid fa-camera-rotate"></i></button>
+    </div>
+  </div>
+
+
+  <div id="incomingCallOverlay" class="fixed inset-0 z-[70] hidden items-center justify-center bg-black/80 p-5">
+    <div class="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-6 text-center">
+      <div class="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-300"><i class="fa-solid fa-phone-volume text-2xl"></i></div>
+      <h2 id="incomingCallerName" class="text-lg font-bold text-white">Incoming call</h2>
+      <p id="incomingCallType" class="my-2 text-sm text-slate-300">কল আসছে…</p>
+      <div class="mt-5 flex justify-center gap-4">
+        <button onclick="declineIncomingCall()" class="rounded-xl bg-red-600 px-5 py-3 text-sm font-bold text-white">রিজেক্ট</button>
+        <button onclick="acceptIncomingCall()" class="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white">রিসিভ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= AI CAMERA SCANNER MODAL ================= -->
+  <div id="aiCameraModal" class="fixed inset-0 bg-black/95 z-50 hidden flex-col justify-between p-4">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-bold text-cyan-400"><i class="fa-solid fa-camera mr-1"></i> ZenvX Study Math Scanner</span>
+      <button onclick="closeAiCameraModal()" class="w-8 h-8 rounded-full bg-slate-800 text-white"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="relative flex-1 my-3 rounded-2xl overflow-hidden border-2 border-cyan-500/50 bg-slate-950">
+      <video id="aiCameraVideo" autoplay playsinline muted class="w-full h-full object-cover"></video>
+      <div id="aiCameraStatus" role="status" class="absolute bottom-2 left-2 right-2 rounded-lg bg-black/70 p-2 text-center text-xs text-white">ক্যামেরার অনুমতি চাওয়া হচ্ছে…</div>
+      <canvas id="aiCameraCanvas" class="hidden"></canvas>
+    </div>
+    <div class="flex justify-center">
+      <button onclick="capturePhotoForAi()" class="w-16 h-16 rounded-full border-4 border-white bg-cyan-500 text-white text-xl flex items-center justify-center">
+        <i class="fa-solid fa-camera"></i>
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ================= API SETTINGS MODAL ================= -->
+  <div id="apiModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="w-full max-w-md rounded-2xl bg-[#111827] border border-slate-700 p-5 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h3 class="font-bold text-sm text-white">ZenvX Study API Settings</h3>
+        <button onclick="toggleModal('apiModal', false)" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p class="text-xs leading-relaxed text-slate-300">AI ও YouTube API credentials সার্ভারের environment configuration-এ রাখতে হবে। নিরাপত্তার জন্য API key এই ব্রাউজারে সংরক্ষণ করা হয় না।</p>
+      <div class="flex justify-end gap-2">
+        <button onclick="saveApiConfiguration()" class="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold">সেভ করুন</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ================= MASTER JAVASCRIPT ENGINE ================= -->
+  <script>
+    /********************************************************************
+     * 1. EXACT CASIO 991EX / CalcES ENGINE (ALL BUTTONS & SUB-FUNCTIONS)
+     ********************************************************************/
+    let expr = "1/(pi^2)"; // Starts with exact demo expression from Image 2!
+    let calcCursor = expr.length;
+    let calcHistoryIndex = -1;
+    let calcShift = false;
+    let calcAlpha = false;
+    let calcHyp = false;
+    let angleMode = "DEG"; // DEG, RAD, GRAD
+    let lastAns = 0.10132118364;
+    let preAns = 0;
+    let memoryM = 0;
+    let sdMode = 0; // 0: Decimal, 1: Exact Fraction, 2: Pi multiple, 3: DMS
+    let calcHistory = [];
+    let calcHistoryDraft = null;
+    let calcVars = { a: 0, b: 0, c: 0, d: 0, e: 2.71828182846, f: 0, x: 2, y: 3, m: 0 };
+    const themes = ['calc-theme-dark', 'calc-theme-emerald', 'calc-theme-light', 'calc-theme-cyber'];
+    let currentThemeIdx = 0;
+
+    function openCalculatorFullScreen() {
+      pauseAllPlayingMedia();
+      const mod = document.getElementById('calcModule');
+      mod.classList.remove('hidden');
+      mod.classList.add('flex');
+      updateCalculatorScreen();
+    }
+
+    function closeCalculatorFullScreen() {
+      const mod = document.getElementById('calcModule');
+      mod.classList.add('hidden');
+      mod.classList.remove('flex');
+    }
+
+    function cycleCalculatorTheme() {
+      const mod = document.getElementById('calcModule');
+      mod.classList.remove(themes[currentThemeIdx]);
+      currentThemeIdx = (currentThemeIdx + 1) % themes.length;
+      mod.classList.add(themes[currentThemeIdx]);
+    }
+
+    function toggleCalcAngleUnit() {
+      const units = ["DEG", "RAD", "GRAD"];
+      angleMode = units[(units.indexOf(angleMode) + 1) % units.length];
+      document.getElementById('btnDegRad').innerText = angleMode;
+      updateCalculatorScreen();
+    }
+
+    function updateStatusBadges() {
+      document.getElementById('badgeShift').classList.toggle('hidden', !calcShift);
+      document.getElementById('badgeAlpha').classList.toggle('hidden', !calcAlpha);
+      document.getElementById('badgeHyp').classList.toggle('hidden', !calcHyp);
+      document.getElementById('badgeMemory').innerText = `M=${Number(memoryM.toFixed(3))}`;
+    }
+
+    // Master Key Handler covering Normal, SHIFT (Yellow), and ALPHA (Purple) actions
+    function pressKey(key) {
+      if (key === 'SHIFT') {
+        calcShift = !calcShift;
+        calcAlpha = false;
+        updateStatusBadges();
+        return;
+      }
+      if (key === 'ALPHA') {
+        calcAlpha = !calcAlpha;
+        calcShift = false;
+        updateStatusBadges();
+        return;
+      }
+      if (key === 'HYP') {
+        if (calcShift) { insertToken('abs('); }
+        else if (calcAlpha) { insertToken('c'); }
+        else { calcHyp = !calcHyp; }
+        resetModifiers();
+        updateCalculatorScreen();
+        return;
+      }
+
+      // Handle SHIFT + Button combinations (Yellow Sub-labels in Image 2)
+      if (calcShift) {
+        resetModifiers();
+        switch (key) {
+          case 'MODE': calcResetAll(); return;
+          case 'CALC': openCalcModal('solve'); return;
+          case 'INT': insertToken('deriv('); return; // d/dx
+          case 'INV': insertToken('fact('); return;  // x!
+          case 'LOGXY': insertToken('sum('); return; // Σ
+          case 'FRAC': toggleMixedFraction(); return;
+          case 'SQRT': insertToken('cbrt('); return; // ³√x
+          case 'SQ': insertToken('^3'); return;      // x³
+          case 'POW': insertToken('^(1/'); return;   // ˣ√y
+          case 'LOG': insertToken('10^('); return;
+          case 'LN': insertToken('e^('); return;
+          case 'NEG': insertToken('∠'); return;
+          case 'DMS': factorizeCurrentResult(); return; // FACT (Prime Factorization)
+          case 'SIN': insertToken('asin('); return;
+          case 'COS': insertToken('acos('); return;
+          case 'TAN': insertToken('atan('); return;
+          case 'RCL': storeToMemoryPrompt(); return; // STO
+          case 'ENG': insertToken('i'); return;
+          case 'LPAREN': insertToken('%'); return;
+          case 'RPAREN': insertToken(','); return;
+          case 'SD': toggleMixedFraction(); return;
+          case 'MPLUS': memoryM -= evaluateRaw(expr); updateStatusBadges(); return; // M-
+          case '4': openCalcModal('matrix'); return; // MATRIX
+          case '5': openCalcModal('vector'); return; // VECTOR
+          case '6': openCalcModal('func'); return;   // FUNC
+          case 'MUL': insertToken('P'); return;      // nPr
+          case 'DIV': insertToken('C'); return;      // nCr
+          case '1': openCalcModal('stat'); return;   // STAT
+          case '2': openCalcModal('cmplx'); return;  // CMPLX
+          case '3': openCalcModal('distr'); return;  // DISTR
+          case 'ADD': insertToken('Pol('); return;
+          case 'SUB': insertToken('Rec('); return;
+          case '0': navigator.clipboard?.writeText(String(lastAns)); showSubInfo("COPIED"); return;
+          case 'DOT': insertToken(String(Number(Math.random().toFixed(3)))); return; // Ran#
+          case 'EXP': insertToken('pi'); return;     // π
+          case 'EQ': openCalcModal('history'); return;
+        }
+      }
+
+      // Handle ALPHA + Button combinations (Purple Sub-labels in Image 2)
+      if (calcAlpha) {
+        resetModifiers();
+        switch (key) {
+          case 'CALC': insertToken('='); return;
+          case 'INT': insertToken(':'); return;
+          case 'LOGXY': insertToken('prod('); return; // Π
+          case 'FRAC': showRemainderDivision(); return; // ÷R
+          case 'SQRT': insertToken(' mod '); return;
+          case 'SQ': showBaseConversion(10); return;
+          case 'POW': showBaseConversion(16); return;
+          case 'LOG': showBaseConversion(2); return;
+          case 'LN': insertToken('t'); return;
+          case 'NEG': insertToken('a'); return;
+          case 'DMS': insertToken('b'); return;
+          case 'SIN': insertToken('d'); return;
+          case 'COS': insertToken('e'); return;
+          case 'TAN': insertToken('f'); return;
+          case 'RCL': calcVars = { a:0,b:0,c:0,d:0,e:2.718281828,f:0,x:0,y:0,m:0 }; showSubInfo("VARS CLEARED"); return;
+          case 'ENG': insertToken('cot('); return;
+          case 'LPAREN': insertToken('acot('); return;
+          case 'RPAREN': insertToken('x'); return;
+          case 'SD': insertToken('y'); return;
+          case 'MPLUS': insertToken('m'); return;
+          case '6': openCalcModal('more'); return;
+          case 'MUL': insertToken('gcd('); return;
+          case 'DIV': insertToken('lcm('); return;
+          case 'ADD': insertToken('ceil('); return;
+          case 'SUB': insertToken('floor('); return;
+          case '0': navigator.clipboard?.readText().then(t => insertToken(t)); return;
+          case 'DOT': insertToken(String(Math.floor(Math.random() * 100))); return; // RanInt
+          case 'EXP': insertToken('e'); return;
+          case 'ANS': insertToken(String(preAns)); return;
+        }
+      }
+
+      // Normal Button Presses
+      switch (key) {
+        case 'ESC': closeCalculatorFullScreen(); return;
+        case 'AC': expr = ""; calcCursor = 0; calcHistoryIndex = -1; sdMode = 0; break;
+        case 'DEL': {
+          const field = document.getElementById('calcMathField');
+          if (field) { field.focus(); field.executeCommand('deleteBackward'); syncExpressionFromMathField(); }
+          else if (calcCursor > 0) { expr = expr.slice(0, calcCursor - 1) + expr.slice(calcCursor); calcCursor--; updateCalculatorScreen(); }
+          return;
+        }
+        case 'LEFT': case 'RIGHT': case 'UP': case 'DOWN': {
+          const field = document.getElementById('calcMathField');
+          if (field) {
+            field.focus();
+            const commands = { LEFT: 'moveToPreviousChar', RIGHT: 'moveToNextChar', UP: 'moveUp', DOWN: 'moveDown' };
+            field.executeCommand(commands[key]);
+          }
+          return;
+        }
+        case 'MODE': openCalcModal('mode'); break;
+        case '2ND': calcShift = !calcShift; updateStatusBadges(); return;
+        case 'CALC': evaluateForCustomX(); return;
+        case 'INT': insertToken('int('); break;
+        case 'INV': insertToken('^(-1)'); break;
+        case 'LOGXY': insertToken('logBase('); break;
+        case 'FRAC': insertToken('()/()'); break;
+        case 'SQRT': insertToken('sqrt('); break;
+        case 'SQ': insertToken('^2'); break;
+        case 'POW': insertToken('^'); break;
+        case 'LOG': insertToken('log('); break;
+        case 'LN': insertToken('ln('); break;
+        case 'NEG': insertToken('-'); break;
+        case 'DMS': toggleDMSFormat(); return;
+        case 'SIN': insertToken(calcHyp ? 'sinh(' : 'sin('); calcHyp = false; break;
+        case 'COS': insertToken(calcHyp ? 'cosh(' : 'cos('); calcHyp = false; break;
+        case 'TAN': insertToken(calcHyp ? 'tanh(' : 'tan('); calcHyp = false; break;
+        case 'RCL': openCalcModal('rcl'); return;
+        case 'ENG': formatEngineeringNotation(); return;
+        case 'LPAREN': insertToken('('); break;
+        case 'RPAREN': insertToken(')'); break;
+        case 'SD': toggleSDConversion(); return;
+        case 'MPLUS': memoryM += evaluateRaw(expr); updateStatusBadges(); showSubInfo("M+ SAVED"); return;
+        case 'LIMIT': insertToken('lim('); break;
+        case 'INF': insertToken('Infinity'); break;
+        case 'MUL': insertToken('*'); break;
+        case 'DIV': insertToken('/'); break;
+        case 'ADD': insertToken('+'); break;
+        case 'SUB': insertToken('-'); break;
+        case 'DOT': insertToken('.'); break;
+        case 'EXP': insertToken('*10^'); break;
+        case 'ANS': insertToken('Ans'); break;
+        case 'EQ': commitCalculation(); return;
+        default: insertToken(key); break;
+      }
+
+      resetModifiers();
+      updateCalculatorScreen();
+    }
+
+    function resetModifiers() {
+      calcShift = false;
+      calcAlpha = false;
+      updateStatusBadges();
+    }
+
+    function insertToken(t) {
+      const map = {
+        'sqrt(': '\\sqrt{#0}', 'cbrt(': '\\sqrt[3]{#0}', '()/()': '\\frac{#0}{#0}',
+        'int(': '\\int\\left(#0\\right)', 'deriv(': '\\frac{d}{dx}\\left(#0\\right)',
+        'sum(': '\\sum\\left(#0\\right)', 'prod(': '\\prod\\left(#0\\right)',
+        'sin(': '\\sin\\left(#0\\right)', 'cos(': '\\cos\\left(#0\\right)', 'tan(': '\\tan\\left(#0\\right)',
+        'asin(': '\\arcsin\\left(#0\\right)', 'acos(': '\\arccos\\left(#0\\right)', 'atan(': '\\arctan\\left(#0\\right)',
+        'ln(': '\\ln\\left(#0\\right)', 'log(': '\\log\\left(#0\\right)',
+        'pi': '\\pi', '*': '\\times', '/': '\\div', 'Infinity': '\\infty'
+      };
+      if (t === '()/()') { insertMathLatex(map[t]); return; }
+      if (map[t]) { insertMathLatex(map[t]); return; }
+      if (/^(?:sin|cos|tan|sinh|cosh|tanh|asin|acos|atan|ln|log|abs|fact|lim|gcd|lcm|floor|ceil)\($/.test(t)) {
+        const fn = t.slice(0, -1);
+        const texName = ({asin:'arcsin',acos:'arccos',atan:'arctan'})[fn] || fn;
+        insertMathLatex('\\' + texName + '\\left(#0\\right)'); return;
+      }
+      if (t === '^2') { insertMathLatex('^{2}'); return; }
+      if (t === '^3') { insertMathLatex('^{3}'); return; }
+      if (t === '^') { insertMathLatex('^{#0}'); return; }
+      if (t === '*10^') { insertMathLatex('\\times10^{#0}'); return; }
+      const simple = String(t).replace(/\*/g, '\\times').replace(/\//g, '\\div').replace(/pi/g, '\\pi ');
+      insertMathLatex(simple);
+    }
+
+    function showSubInfo(txt) {
+      const el = document.getElementById('calcSubModeInfo');
+      el.innerText = txt;
+      setTimeout(() => { if (el.innerText === txt) el.innerText = ""; }, 2200);
+    }
+
+    // Natural Textbook LaTeX Formatter
+    function formatExprToLatex(raw) {
+      if (!raw) return "\\,";
+      let tex = raw
+        .replace(/1\/\(pi\^2\)/g, "\\frac{1}{\\pi^2}")
+        .replace(/\(([^()]+)\)\/\(([^()]*)\)/g, "\\frac{$1}{$2}")
+        .replace(/([0-9a-zA-Z.]+)\/\(([^()]*)\)/g, "\\frac{$1}{$2}")
+        .replace(/([0-9a-zA-Z.]+)\/([0-9a-zA-Z.^]+)/g, "\\frac{$1}{$2}")
+        .replace(/sqrt\(([^()]*)\)/g, "\\sqrt{$1}")
+        .replace(/sqrt\(([^()]*)$/g, "\\sqrt{$1\\square}")
+        .replace(/cbrt\(([^()]*)\)/g, "\\sqrt[3]{$1}")
+        .replace(/cbrt\(([^()]*)$/g, "\\sqrt[3]{$1\\square}")
+        .replace(/int\(([^)]*)\)/g, "\\int\\left($1\\right)dx")
+        .replace(/deriv\(([^)]*)\)/g, "\\frac{d}{dx}\\left($1\\right)")
+        .replace(/sum\(([^)]*)\)/g, "\\sum\\left($1\\right)")
+        .replace(/prod\(([^)]*)\)/g, "\\prod\\left($1\\right)")
+        .replace(/pi/g, "\\pi ")
+        .replace(/Infinity/g, "\\infty ")
+        .replace(/asin\(/g, "\\sin^{-1}(")
+        .replace(/acos\(/g, "\\cos^{-1}(")
+        .replace(/atan\(/g, "\\tan^{-1}(")
+        .replace(/sin\(/g, "\\sin(")
+        .replace(/cos\(/g, "\\cos(")
+        .replace(/tan\(/g, "\\tan(")
+        .replace(/log\(/g, "\\log(")
+        .replace(/ln\(/g, "\\ln(")
+        .replace(/\*/g, "\\times ")
+        .replace(/\//g, "\\div ");
+      return tex;
+    }
+
+    // Core Mathematical Evaluator supporting Factorials, nPr, nCr, Derivatives, Integrals, GCD, LCM
+    function factorial(n) {
+      n = Math.round(n);
+      if (n < 0) return NaN;
+      if (n <= 1) return 1;
+      let r = 1;
+      for (let i = 2; i <= n; i++) r *= i;
+      return r;
+    }
+    function gcd(a, b) { return b === 0 ? Math.abs(a) : gcd(b, a % b); }
+    function lcm(a, b) { return Math.abs(a * b) / gcd(a, b); }
+    function nPr(n, r) { return factorial(n) / factorial(n - r); }
+    function nCr(n, r) { return factorial(n) / (factorial(r) * factorial(n - r)); }
+
+    // Numerical Derivative d/dx at x = calcVars.x
+    function numDeriv(fnBody, xVal = calcVars.x || 2) {
+      const h = 1e-5;
+      const f = (x) => Function('x', `return (${fnBody});`)(x);
+      return (f(xVal + h) - f(xVal - h)) / (2 * h);
+    }
+
+    // Numerical Definite Integral from 0 to xVal using Simpson's Rule
+    function numIntegral(fnBody, b = calcVars.x || 3) {
+      const a = 0, n = 100, h = (b - a) / n;
+      const f = (x) => Function('x', `return (${fnBody});`)(x);
+      let s = f(a) + f(b);
+      for (let i = 1; i < n; i++) s += f(a + i * h) * (i % 2 === 0 ? 2 : 4);
+      return (h / 3) * s;
+    }
+
+    function evaluateRaw(rawStr) {
+      if (!rawStr) return 0;
+      try {
+        let s = rawStr;
+        // Auto-close open parentheses
+        const openCount = (s.match(/\(/g) || []).length;
+        const closeCount = (s.match(/\)/g) || []).length;
+        if (openCount > closeCount) s += ')'.repeat(openCount - closeCount);
+
+        const trigFactor = angleMode === "DEG" ? (Math.PI / 180) : (angleMode === "GRAD" ? (Math.PI / 200) : 1);
+        const invFactor = 1 / trigFactor;
+
+        s = s
+          .replace(/Ans/g, `(${lastAns})`)
+          .replace(/pi/g, "Math.PI")
+          .replace(/(?<![a-zA-Z])e(?![a-zA-Z])/g, "Math.E")
+          .replace(/(\d+)P(\d+)/g, "nPr($1,$2)")
+          .replace(/(\d+)C(\d+)/g, "nCr($1,$2)")
+          .replace(/fact\(([^)]+)\)/g, "factorial($1)")
+          .replace(/sqrt\(/g, "Math.sqrt(")
+          .replace(/cbrt\(/g, "Math.cbrt(")
+          .replace(/abs\(/g, "Math.abs(")
+          .replace(/ceil\(/g, "Math.ceil(")
+          .replace(/floor\(/g, "Math.floor(")
+          .replace(/asin\(/g, `(${invFactor})*Math.asin(`)
+          .replace(/acos\(/g, `(${invFactor})*Math.acos(`)
+          .replace(/atan\(/g, `(${invFactor})*Math.atan(`)
+          .replace(/sinh\(/g, "Math.sinh(")
+          .replace(/cosh\(/g, "Math.cosh(")
+          .replace(/tanh\(/g, "Math.tanh(")
+          .replace(/sin\(/g, `Math.sin(${trigFactor}*`)
+          .replace(/cos\(/g, `Math.cos(${trigFactor}*`)
+          .replace(/tan\(/g, `Math.tan(${trigFactor}*`)
+          .replace(/cot\(/g, `1/Math.tan(${trigFactor}*`)
+          .replace(/logBase\(([^,]+),([^)]+)\)/g, "(Math.log($2)/Math.log($1))")
+          .replace(/log\(/g, "Math.log10(")
+          .replace(/ln\(/g, "Math.log(")
+          .replace(/ mod /g, "%")
+          .replace(/%/g, "*0.01")
+          .replace(/\^/g, "**");
+
+        // Replace variables a,b,c,d,f,x,y,m
+        Object.keys(calcVars).forEach(v => {
+          const reg = new RegExp(`(?<![a-zA-Z0-9_])${v}(?![a-zA-Z0-9_])`, 'g');
+          s = s.replace(reg, `(${calcVars[v]})`);
+        });
+
+        const val = Function('factorial', 'gcd', 'lcm', 'nPr', 'nCr', 'numDeriv', 'numIntegral', `"use strict"; return (${s});`)(
+          factorial, gcd, lcm, nPr, nCr, numDeriv, numIntegral
+        );
+        return Number.isFinite(val) ? val : NaN;
+      } catch (e) {
+        return NaN;
+      }
+    }
+
+    function latexToCalculatorExpression(latex) {
+      let s = String(latex || '');
+      // Convert nested common structures from MathLive LaTeX into the evaluator's expression syntax.
+      for (let i = 0; i < 12; i++) {
+        const old = s;
+        s = s.replace(/\\frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, '($1)/($2)')
+             .replace(/\\sqrt\s*\[3\]\s*\{([^{}]*)\}/g, 'cbrt($1)')
+             .replace(/\\sqrt\s*\{([^{}]*)\}/g, 'sqrt($1)');
+        if (s === old) break;
+      }
+      return s.replace(/\\left|\\right/g, '')
+        .replace(/\\operatorname\s*\{([^{}]+)\}/g, '$1')
+        .replace(/\\arcsin\b/g, 'asin').replace(/\\arccos\b/g, 'acos').replace(/\\arctan\b/g, 'atan')
+        .replace(/\\(sin|cos|tan|ln|log|lim|max|min)\b/g, '$1')
+        .replace(/\\pi\b/g, 'pi').replace(/\\infty/g, 'Infinity')
+        .replace(/\\cdot|\\times/g, '*').replace(/\\div/g, '/')
+        .replace(/\\%/g, '%').replace(/\\,/g, '')
+        .replace(/\\[a-zA-Z]+/g, '')
+        .replace(/\{/g, '(').replace(/\}/g, ')')
+        .replace(/−/g, '-').replace(/×/g, '*').replace(/÷/g, '/')
+        .replace(/\s+/g, '');
+    }
+
+    function syncExpressionFromMathField() {
+      const field = document.getElementById('calcMathField');
+      if (!field) return;
+      expr = latexToCalculatorExpression(field.getValue ? field.getValue('latex') : field.value);
+      field.dataset.expression = expr;
+      calcCursor = expr.length;
+      calcHistoryIndex = -1;
+      sdMode = 0;
+      updateCalculatorOutputOnly();
+    }
+
+    function syncMathFieldFromExpression() {
+      const field = document.getElementById('calcMathField');
+      if (!field || field.dataset.expression === expr) return;
+      // The legacy expression formatter is used only when restoring a saved/programmatic expression.
+      field.value = formatExprToLatex(expr);
+      field.dataset.expression = expr;
+    }
+
+    function insertMathLatex(latex) {
+      const field = document.getElementById('calcMathField');
+      if (!field || typeof field.insert !== 'function') {
+        expr = expr.slice(0, calcCursor) + latexToCalculatorExpression(latex) + expr.slice(calcCursor);
+        calcCursor = expr.length; updateCalculatorScreen(); return;
+      }
+      field.focus();
+      field.insert(latex, { insertionMode: 'replaceSelection' });
+      syncExpressionFromMathField();
+    }
+
+    function updateCalculatorOutputOnly() {
+      const outEl = document.getElementById('calcLiveOutput');
+      if (!outEl) return;
+      const val = evaluateRaw(expr);
+      outEl.innerText = Number.isFinite(val) ? Number(val.toPrecision(11)).toString() : (expr ? '…' : '0');
+    }
+
+    function updateCalculatorScreen() {
+      syncMathFieldFromExpression();
+      updateCalculatorOutputOnly();
+    }
+
+    function commitCalculation() {
+      const val = evaluateRaw(expr);
+      if (Number.isFinite(val)) {
+        preAns = lastAns;
+        lastAns = val;
+        const formatted = Number(val.toPrecision(11)).toString();
+        calcHistory.unshift({ expr: expr, res: formatted });
+        calcHistoryIndex = -1;
+        document.getElementById('calcLiveOutput').innerText = formatted;
+        showSubInfo("SAVED TO HISTORY");
+      } else {
+        document.getElementById('calcLiveOutput').innerText = "Syntax Error";
+      }
+    }
+
+    // S⇔D Button: Converts Decimal <-> Exact Fraction (a/b) <-> Pi Multiple
+    function toggleSDConversion() {
+      const val = evaluateRaw(expr);
+      if (!Number.isFinite(val)) return;
+      sdMode = (sdMode + 1) % 3;
+      const outEl = document.getElementById('calcLiveOutput');
+
+      if (sdMode === 0) {
+        document.getElementById('statusDeci').innerText = "DECI";
+        outEl.innerText = Number(val.toPrecision(11)).toString();
+      } else if (sdMode === 1) {
+        document.getElementById('statusDeci').innerText = "FRAC";
+        const frac = decimalToFraction(val);
+        outEl.innerText = `${frac.n} / ${frac.d}`;
+      } else {
+        document.getElementById('statusDeci').innerText = "π-MODE";
+        const piRatio = val / Math.PI;
+        outEl.innerText = `${Number(piRatio.toFixed(4))} π`;
+      }
+    }
+
+    function decimalToFraction(dec) {
+      const tolerance = 1.0E-7;
+      let h1 = 1, h2 = 0, k1 = 0, k2 = 1, b = Math.abs(dec);
+      do {
+        let a = Math.floor(b);
+        let aux = h1; h1 = a * h1 + h2; h2 = aux;
+        aux = k1; k1 = a * k1 + k2; k2 = aux;
+        b = 1 / (b - a);
+      } while (Math.abs(Math.abs(dec) - h1 / k1) > Math.abs(dec) * tolerance && k1 < 100000);
+      return { n: (dec < 0 ? -h1 : h1), d: k1 };
+    }
+
+    function toggleMixedFraction() {
+      const val = evaluateRaw(expr);
+      if (!Number.isFinite(val)) return;
+      const f = decimalToFraction(val);
+      const whole = Math.trunc(f.n / f.d);
+      const rem = Math.abs(f.n % f.d);
+      document.getElementById('calcLiveOutput').innerText = whole !== 0 ? `${whole} [${rem}/${f.d}]` : `${f.n}/${f.d}`;
+    }
+
+    // ° ' " Button: Converts Decimal Degrees <-> Degrees, Minutes, Seconds
+    function toggleDMSFormat() {
+      const val = evaluateRaw(expr);
+      if (!Number.isFinite(val)) return;
+      const d = Math.trunc(val);
+      const mFull = Math.abs((val - d) * 60);
+      const m = Math.trunc(mFull);
+      const s = ((mFull - m) * 60).toFixed(1);
+      document.getElementById('calcLiveOutput').innerText = `${d}° ${m}' ${s}"`;
+    }
+
+    // SHIFT + ° ' " (FACT): Prime Factorization of Current Number
+    function factorizeCurrentResult() {
+      let n = Math.round(Math.abs(evaluateRaw(expr)));
+      if (!n || n < 2 || n > 1e9) {
+        showSubInfo("INT REQUIRED");
+        return;
+      }
+      const factors = {};
+      let d = 2;
+      while (n >= 2) {
+        if (n % d === 0) {
+          factors[d] = (factors[d] || 0) + 1;
+          n /= d;
+        } else {
+          d++;
+          if (d * d > n && n > 1) {
+            factors[n] = (factors[n] || 0) + 1;
+            break;
+          }
+        }
+      }
+      const str = Object.entries(factors).map(([p, e]) => e > 1 ? `${p}^${e}` : p).join(" × ");
+      document.getElementById('calcLiveOutput').innerText = str;
+      showSubInfo("PRIME FACTORS");
+    }
+
+    function formatEngineeringNotation() {
+      const val = evaluateRaw(expr);
+      if (!Number.isFinite(val) || val === 0) return;
+      const exp = Math.floor(Math.log10(Math.abs(val)));
+      const engExp = Math.floor(exp / 3) * 3;
+      const mantissa = val / Math.pow(10, engExp);
+      document.getElementById('calcLiveOutput').innerText = `${Number(mantissa.toFixed(5))}×10^${engExp}`;
+    }
+
+    function evaluateForCustomX() {
+      const val = prompt("x-এর মান দিন (Enter value for variable x):", calcVars.x);
+      if (val !== null && !isNaN(Number(val))) {
+        calcVars.x = Number(val);
+        updateCalculatorScreen();
+        showSubInfo(`x = ${calcVars.x}`);
+      }
+    }
+
+    function storeToMemoryPrompt() {
+      const v = prompt("কোন ভ্যারিয়েবলে সেভ করবেন? (a, b, c, d, x, y, m):", "x");
+      if (v && v in calcVars) {
+        calcVars[v] = evaluateRaw(expr);
+        showSubInfo(`${v} = ${calcVars[v]}`);
+      }
+    }
+
+    function showRemainderDivision() {
+      const parts = expr.split('/');
+      if (parts.length === 2) {
+        const a = Math.round(evaluateRaw(parts[0]));
+        const b = Math.round(evaluateRaw(parts[1]));
+        if (b !== 0) {
+          document.getElementById('calcLiveOutput').innerText = `Q=${Math.trunc(a/b)}, R=${a%b}`;
+        }
+      }
+    }
+
+    function showBaseConversion(base) {
+      const n = Math.round(evaluateRaw(expr));
+      if (Number.isFinite(n)) {
+        const label = base === 16 ? "HEX: " : (base === 2 ? "BIN: " : "DEC: ");
+        document.getElementById('calcLiveOutput').innerText = label + n.toString(base).toUpperCase();
+      }
+    }
+
+    function calcResetAll() {
+      expr = "";
+      calcCursor = 0;
+      calcHistoryIndex = -1;
+      memoryM = 0;
+      sdMode = 0;
+      updateStatusBadges();
+      updateCalculatorScreen();
+      showSubInfo("ALL CLEARED");
+    }
+
+    function scanMathFromCalculator() {
+      closeCalculatorFullScreen();
+      switchMainTab('ai');
+      openAiCameraModal();
+    }
+
+    // Calculator Interactive Modals (CONST, CONV, SI, MATRIX, VECTOR, SOLVE, HISTORY)
+    function openCalcModal(type) {
+      const modal = document.getElementById('calcPopupModal');
+      const title = document.getElementById('calcPopupTitle');
+      const body = document.getElementById('calcPopupBody');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      if (type === 'constants') {
+        title.innerText = "Scientific Constants (CONST)";
+        const constants = [
+          { sym: "c", name: "আলোর বেগ (Speed of Light)", val: "299792458" },
+          { sym: "g", name: "অভিকর্ষজ ত্বরণ (Standard Gravity)", val: "9.80665" },
+          { sym: "G", name: "মহাকর্ষীয় ধ্রুবক (Gravitational Constant)", val: "6.6743e-11" },
+          { sym: "h", name: "প্ল্যাঙ্কের ধ্রুবক (Planck Constant)", val: "6.62607e-34" },
+          { sym: "N_A", name: "অ্যাভোগাড্রো সংখ্যা (Avogadro Number)", val: "6.02214e23" },
+          { sym: "e_c", name: "ইলেকট্রনের চার্জ (Elementary Charge)", val: "1.60217e-19" },
+          { sym: "m_e", name: "ইলেকট্রনের ভর (Electron Mass)", val: "9.10938e-31" },
+          { sym: "R", name: "মোলার গ্যাস ধ্রুবক (Molar Gas Constant)", val: "8.31446" }
+        ];
+        body.innerHTML = constants.map(c => `
+          <button onclick="insertToken('${c.val}'); closeCalcModal(); updateCalculatorScreen();" class="w-full p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-between">
+            <span><strong class="text-amber-400 mr-2">${c.sym}</strong> ${c.name}</span>
+            <span class="font-mono text-cyan-300">${c.val}</span>
+          </button>
+        `).join('');
+      } else if (type === 'conversions') {
+        title.innerText = "Unit Conversions (CONV)";
+        const convs = [
+          { label: "inch ➔ cm (× 2.54)", factor: "*2.54" },
+          { label: "cm ➔ inch (÷ 2.54)", factor: "/2.54" },
+          { label: "km/h ➔ m/s (÷ 3.6)", factor: "/3.6" },
+          { label: "m/s ➔ km/h (× 3.6)", factor: "*3.6" },
+          { label: "atm ➔ Pa (× 101325)", factor: "*101325" },
+          { label: "eV ➔ Joule (× 1.602e-19)", factor: "*1.60218e-19" },
+          { label: "hp ➔ Watt (× 745.7)", factor: "*745.7" }
+        ];
+        body.innerHTML = convs.map(c => `
+          <button onclick="insertToken('${c.factor}'); closeCalcModal(); updateCalculatorScreen();" class="w-full p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-between">
+            <span>${c.label}</span>
+            <span class="font-mono text-emerald-400">${c.factor}</span>
+          </button>
+        `).join('');
+      } else if (type === 'si') {
+        title.innerText = "SI Prefixes (SI)";
+        const prefixes = [
+          { name: "Tera (T)", val: "*10^12" },
+          { name: "Giga (G)", val: "*10^9" },
+          { name: "Mega (M)", val: "*10^6" },
+          { name: "Kilo (k)", val: "*10^3" },
+          { name: "Milli (m)", val: "*10^(-3)" },
+          { name: "Micro (μ)", val: "*10^(-6)" },
+          { name: "Nano (n)", val: "*10^(-9)" },
+          { name: "Pico (p)", val: "*10^(-12)" }
+        ];
+        body.innerHTML = prefixes.map(p => `
+          <button onclick="insertToken('${p.val}'); closeCalcModal(); updateCalculatorScreen();" class="w-full p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-between">
+            <span class="font-bold text-purple-300">${p.name}</span>
+            <span class="font-mono text-cyan-300">${p.val}</span>
+          </button>
+        `).join('');
+      } else if (type === 'solve' || type === 'more') {
+        title.innerText = "Quadratic & Cubic Equation Solver (ax² + bx + c = 0)";
+        body.innerHTML = `
+          <div class="space-y-2">
+            <div class="grid grid-cols-3 gap-2">
+              <input id="eqA" type="number" value="1" placeholder="a" class="p-2 rounded bg-slate-900 border border-slate-700 text-white">
+              <input id="eqB" type="number" value="-5" placeholder="b" class="p-2 rounded bg-slate-900 border border-slate-700 text-white">
+              <input id="eqC" type="number" value="6" placeholder="c" class="p-2 rounded bg-slate-900 border border-slate-700 text-white">
+            </div>
+            <button onclick="solveQuadraticModal()" class="w-full py-2 rounded-xl bg-amber-500 text-black font-bold">Solve Roots (মূল নির্ণয় করুন)</button>
+            <div id="eqRootsOutput" class="p-3 rounded-xl bg-slate-900 font-mono text-cyan-300">x₁ = 3, x₂ = 2</div>
+          </div>
+        `;
+      } else if (type === 'history') {
+        title.innerText = "Calculation History";
+        body.innerHTML = calcHistory.length === 0
+          ? `<p class="text-slate-400">এখনো কোনো হিসাব সংরক্ষিত হয়নি। (= চাপুন)</p>`
+          : calcHistory.map(h => `
+              <button onclick="expr='${h.expr}'; calcCursor=expr.length; calcHistoryIndex=-1; closeCalcModal(); updateCalculatorScreen();" class="w-full p-2.5 rounded-xl bg-slate-800 flex items-center justify-between">
+                <span class="font-mono">${h.expr}</span>
+                <span class="font-mono font-bold text-amber-400">= ${h.res}</span>
+              </button>
+            `).join('');
+      } else {
+        title.innerText = `${type.toUpperCase()} Mode Ready`;
+        body.innerHTML = `
+          <p class="text-slate-300">এই মোডটি সক্রিয় করা হয়েছে। নিচের যেকোনো প্রিসেট সিলেক্ট করুন:</p>
+          <button onclick="expr='1/(pi^2)'; closeCalcModal(); updateCalculatorScreen();" class="w-full p-2.5 rounded-xl bg-slate-800 text-left">1 / π² = 0.10132118364</button>
+          <button onclick="expr='sqrt(3^2+4^2)'; closeCalcModal(); updateCalculatorScreen();" class="w-full p-2.5 rounded-xl bg-slate-800 text-left">Vector Magnitude: √(3² + 4²) = 5</button>
+          <button onclick="expr='10C3'; closeCalcModal(); updateCalculatorScreen();" class="w-full p-2.5 rounded-xl bg-slate-800 text-left">Combination: 10C3 = 120</button>
+        `;
+      }
+    }
+
+    function solveQuadraticModal() {
+      const a = Number(document.getElementById('eqA').value || 1);
+      const b = Number(document.getElementById('eqB').value || 0);
+      const c = Number(document.getElementById('eqC').value || 0);
+      const d = b * b - 4 * a * c;
+      const out = document.getElementById('eqRootsOutput');
+      if (d >= 0) {
+        const x1 = (-b + Math.sqrt(d)) / (2 * a);
+        const x2 = (-b - Math.sqrt(d)) / (2 * a);
+        out.innerText = `x₁ = ${Number(x1.toFixed(5))},  x₂ = ${Number(x2.toFixed(5))}`;
+      } else {
+        const real = (-b / (2 * a)).toFixed(3);
+        const imag = (Math.sqrt(-d) / (2 * a)).toFixed(3);
+        out.innerText = `x₁ = ${real} + ${imag}i,  x₂ = ${real} - ${imag}i`;
+      }
+    }
+
+    function closeCalcModal() {
+      const modal = document.getElementById('calcPopupModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+
+    /********************************************************************
+     * 2. MAIN NAVIGATION, ZenvXai, MESSENGER CALLS & EDUTUBE SHORTS
+     ********************************************************************/
+    let activeMediaStream = null;
+    let callTimerInterval = null;
+    let currentFacingMode = "user";
+    let rtcSocket = null, rtcPeer = null, currentCallId = null, incomingCallData = null;
+    let rtcIceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
+    let selectedPeerSocketId = '', pendingIceCandidates = [], remoteIceCandidates = [];
+    let localDisplayName = '';
+    let attachedImageBase64 = null;
+    let attachedFileContent = null;
+    let attachedFileBlob = null;
+    let aiRequestPending = false;
+    let previousMainTab = 'social';
+
+    function switchMainTab(tab) {
+      document.body.classList.remove('shorts-mode');
+      if (tab !== 'ai') previousMainTab = tab;
+      document.body.classList.toggle('ai-mode', tab === 'ai');
+      pauseAllPlayingMedia();
+      document.getElementById('aiModule').classList.add('hidden');
+      document.getElementById('socialModule').classList.add('hidden');
+      document.getElementById('socialModule').classList.remove('flex');
+
+      document.getElementById('navBtnAi').className = "flex flex-col items-center justify-center text-slate-400";
+      document.getElementById('navBtnSocial').className = "flex flex-col items-center justify-center text-slate-400";
+
+      if (tab === 'ai') {
+        document.getElementById('aiModule').classList.remove('hidden');
+        document.getElementById('navBtnAi').className = "flex flex-col items-center justify-center text-blue-400";
+      } else {
+        document.getElementById('socialModule').classList.remove('hidden');
+        document.getElementById('socialModule').classList.add('flex');
+        document.getElementById('navBtnSocial').className = "flex flex-col items-center justify-center text-blue-400";
+      }
+    }
+
+    function leaveAiWorkspace() { switchMainTab(previousMainTab || 'social'); }
+
+    function toggleModal(id, show) {
+      const el = document.getElementById(id);
+      el.classList.toggle('hidden', !show);
+      el.classList.toggle('flex', show);
+    }
+
+    function saveApiConfiguration() {
+      toggleModal('apiModal', false);
+    }
+
+    function triggerSmartPrompt(text) {
+      document.getElementById('aiUserInput').value = text;
+      sendMessageToZenvXai();
+    }
+
+    async function openAiCameraModal() {
+      pauseAllPlayingMedia();
+      toggleModal('aiCameraModal', true);
+      const status = document.getElementById('aiCameraStatus');
+      const video = document.getElementById('aiCameraVideo');
+      status.textContent = 'ক্যামেরার অনুমতি চাওয়া হচ্ছে…';
+      try {
+        if (!navigator.mediaDevices?.getUserMedia) throw new Error('ক্যামেরার জন্য HTTPS বা localhost প্রয়োজন।');
+        // Use a dedicated scanner stream so closing the scanner never stops an active call.
+        if (window.aiScannerStream) window.aiScannerStream.getTracks().forEach(track => track.stop());
+        window.aiScannerStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+        video.srcObject = window.aiScannerStream;
+        await video.play();
+        status.textContent = 'ক্যামেরা চালু। ছবি তুলতে নিচের বোতাম চাপুন।';
+      } catch (e) {
+        status.textContent = e.name === 'NotAllowedError' ? 'Camera permission বন্ধ। Browser Settings থেকে Allow করুন।' : e.name === 'NotFoundError' ? 'এই ডিভাইসে ক্যামেরা পাওয়া যায়নি।' : (e.message || 'ক্যামেরা চালু হয়নি।');
+      }
+    }
+
+    function closeAiCameraModal() {
+      if (window.aiScannerStream) { window.aiScannerStream.getTracks().forEach(track => track.stop()); window.aiScannerStream = null; }
+      const video = document.getElementById('aiCameraVideo'); if (video) video.srcObject = null;
+      toggleModal('aiCameraModal', false);
+    }
+
+    function capturePhotoForAi() {
+      const video = document.getElementById('aiCameraVideo');
+      const canvas = document.getElementById('aiCameraCanvas');
+      if (!video.videoWidth || !video.videoHeight) {
+        document.getElementById('aiCameraStatus').textContent = 'ক্যামেরা প্রস্তুত হয়নি। অনুমতি দিন বা আবার চেষ্টা করুন।';
+        return;
+      }
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const context = canvas.getContext('2d');
+      if (!context) return;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      attachedImageBase64 = canvas.toDataURL('image/jpeg', 0.85);
+      closeAiCameraModal();
+      document.getElementById('aiAttachmentPreview').classList.remove('hidden');
+      const thumb = document.getElementById('previewImgThumb');
+      thumb.src = attachedImageBase64;
+      thumb.classList.remove('hidden');
+      document.getElementById('attachmentName').innerText = 'Scanned_Math_Problem.jpg';
+    }
+
+    // Speech recognition is browser-native; it transcribes speech into the composer.
+    let aiSpeechRecognition = null;
+    function toggleAiSpeechInput() {
+      const button = document.getElementById('aiMicButton');
+      const input = document.getElementById('aiUserInput');
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        const msg = document.createElement('p'); msg.className = 'text-xs text-amber-300 px-2';
+        msg.textContent = 'এই ব্রাউজারে speech-to-text নেই। Android Chrome-এ চেষ্টা করুন অথবা কিবোর্ডের voice typing ব্যবহার করুন.';
+        document.querySelector('.ai-composer')?.prepend(msg); setTimeout(() => msg.remove(), 5000); return;
+      }
+      if (aiSpeechRecognition) { aiSpeechRecognition.stop(); aiSpeechRecognition = null; button?.classList.remove('bg-red-600'); return; }
+      const recognition = new SpeechRecognition(); aiSpeechRecognition = recognition;
+      recognition.lang = 'bn-BD'; recognition.interimResults = true; recognition.continuous = false;
+      const original = input.value;
+      button?.classList.add('bg-red-600');
+      recognition.onresult = event => {
+        const transcript = Array.from(event.results).map(result => result[0].transcript).join(' ');
+        input.value = [original, transcript].filter(Boolean).join(original ? ' ' : ' ');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      };
+      recognition.onerror = event => {
+        const msg = event.error === 'not-allowed' ? 'মাইক্রোফোন অনুমতি দিন।' : 'ভয়েস ইনপুট কাজ করেনি। আবার চেষ্টা করুন।';
+        const status = document.getElementById('aiMicButton'); if (status) status.title = msg;
+      };
+      recognition.onend = () => { aiSpeechRecognition = null; button?.classList.remove('bg-red-600'); };
+      try { recognition.start(); } catch (_) { aiSpeechRecognition = null; button?.classList.remove('bg-red-600'); }
+    }
+
+    function handleLargeFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.size > 15 * 1024 * 1024) { alert('ফাইলের সর্বোচ্চ আকার ১৫ MB।'); e.target.value = ''; return; }
+      attachedFileBlob = file;
+      document.getElementById('aiAttachmentPreview').classList.remove('hidden');
+      document.getElementById('attachmentName').innerText = file.name;
+      const reader = new FileReader();
+      if (file.type.startsWith('image/')) {
+        attachedFileBlob = null;
+        reader.onload = () => {
+          attachedImageBase64 = reader.result;
+          const thumb = document.getElementById('previewImgThumb');
+          thumb.src = attachedImageBase64;
+          thumb.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+      } else if (file.type === 'text/plain' || file.name.toLowerCase().endsWith('.txt')) {
+        reader.onload = () => { attachedFileContent = String(reader.result || '').slice(0, 10000); };
+        reader.readAsText(file);
+      } else { attachedFileContent = null; }
+    }
+
+    function clearAiAttachment() {
+      attachedImageBase64 = null;
+      attachedFileContent = null;
+      attachedFileBlob = null;
+      const fileInput = document.querySelector('#aiAttachmentPreview input[type=file]');
+      if (fileInput) fileInput.value = '';
+      document.getElementById('aiAttachmentPreview').classList.add('hidden');
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    }
+
+    // Render AI replies as readable textbook-style Markdown + KaTeX equations.
+    // The text is escaped before formatting, so model output cannot inject HTML.
+    function renderAiAnswer(raw) {
+      let source = String(raw ?? '').replace(/\r\n?/g, '\n');
+      const mathBlocks = [];
+      const stashMath = (tex, display) => {
+        const index = mathBlocks.push({ tex, display }) - 1;
+        return `@@ZEN_MATH_${index}@@`;
+      };
+      source = source.replace(/\$\$([\s\S]+?)\$\$/g, (_, tex) => stashMath(tex, true));
+      source = source.replace(/\\\[([\s\S]+?)\\\]/g, (_, tex) => stashMath(tex, true));
+      source = source.replace(/\\\(([\s\S]+?)\\\)/g, (_, tex) => stashMath(tex, false));
+      source = source.replace(/(^|[^$])\$([^\n$]+)\$(?!\$)/g, (_, prefix, tex) => prefix + stashMath(tex, false));
+      // Many AI models emit textbook LaTeX commands without delimiters; normalize those lines.
+      source = source.replace(/^([ \t]*\\(?:frac|dfrac|tfrac|sqrt|sum|prod|int|lim|begin|left|overline|underline|cdot|times|alpha|beta|theta|Delta|mathrm|mathbf)\b[^\n]*)$/gm, line => stashMath(line.trim(), true));
+      let html = escapeHtml(source);
+      html = html.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>')
+        .replace(/^##\s+(.+)$/gm, '<h2>$1</h2>')
+        .replace(/^#\s+(.+)$/gm, '<h1>$1</h1>')
+        .replace(/^\s*[-*]\s+(.+)$/gm, '<li>$1</li>')
+        .replace(/(?:<li>[\s\S]*?<\/li>\n?)+/g, m => '<ul>' + m.replace(/\n/g, '') + '</ul>')
+        .replace(/^\s*\d+\.\s+(.+)$/gm, '<li>$1</li>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\n{2,}/g, '</p><p>')
+        .replace(/\n/g, '<br>');
+      html = '<p>' + html + '</p>';
+      html = html.replace(/<p>\s*(<(?:h[1-3]|ul|ol)>)/g, '$1').replace(/(<\/(?:h[1-3]|ul|ol)>)\s*<\/p>/g, '$1');
+      html = html.replace(/@@ZEN_MATH_(\d+)@@/g, (_, n) => {
+        const item = mathBlocks[Number(n)];
+        try {
+          if (typeof katex === 'undefined') return `<code>${escapeHtml(item.tex)}</code>`;
+          const rendered = katex.renderToString(item.tex, { displayMode: item.display, throwOnError: false, strict: 'ignore', output: 'html' });
+          return item.display ? `<div class="math-display">${rendered}</div>` : `<span class="math-inline">${rendered}</span>`;
+        } catch (_) { return `<code>${escapeHtml(item.tex)}</code>`; }
+      });
+      return html;
+    }
+
+    async function sendMessageToZenvXai() {
+      if (aiRequestPending) return;
+      const input = document.getElementById('aiUserInput');
+      const raw = input.value.trim();
+      if (!raw && !attachedImageBase64 && !attachedFileBlob && !attachedFileContent) return;
+      aiRequestPending = true;
+      const sendButton = input.parentElement.querySelector('button[onclick="sendMessageToZenvXai()"]');
+      if (sendButton) { sendButton.disabled = true; sendButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i>'; }
+      const stream = document.getElementById('aiChatStream');
+      const uDiv = document.createElement('div');
+      uDiv.className = 'flex justify-end';
+      const message = document.createElement('div');
+      message.className = 'max-w-[88%] rounded-2xl rounded-tr-none bg-blue-600 p-3 text-sm text-white whitespace-pre-wrap break-words';
+      if (attachedImageBase64) {
+        const img = document.createElement('img'); img.src = attachedImageBase64; img.className = 'w-40 rounded-lg mb-2'; img.alt = 'Attached image'; message.appendChild(img);
+      }
+      const text = document.createElement('p'); text.textContent = raw || 'এই সমস্যাটি ধাপে ধাপে সমাধান করে দাও।'; message.appendChild(text); uDiv.appendChild(message); stream.appendChild(uDiv);
+      const loading = document.createElement('div'); loading.className = 'ai-pending flex items-center gap-2 text-sm text-cyan-300 p-3'; loading.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i><span>সমাধান তৈরি হচ্ছে…</span>'; stream.appendChild(loading);
+      input.value = ''; stream.scrollTop = stream.scrollHeight;
+      try {
+        const form = new FormData();
+        let prompt = raw || 'এই ছবি বা ফাইলটি ব্যাখ্যা করে ধাপে ধাপে সমাধান দাও।';
+        if (document.getElementById('autoPromptToggle')?.checked) prompt = 'শিক্ষার্থীকে বাংলায় সহজভাবে সাহায্য করো। প্রয়োজন হলে মূল ধারণা, প্রাসঙ্গিক সূত্র এবং ধাপে ধাপে সমাধান দাও। প্রশ্ন: ' + prompt;
+        if (attachedFileContent) prompt += '\n\nFile text:\n' + attachedFileContent;
+        form.append('prompt', prompt);
+        if (attachedImageBase64) form.append('imageBase64', attachedImageBase64);
+        if (attachedFileBlob) form.append('file', attachedFileBlob, attachedFileBlob.name);
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 90000);
+        let response;
+        try { response = await fetch('/api/zenvxai/ask', { method: 'POST', body: form, signal: controller.signal }); }
+        finally { clearTimeout(timeout); }
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) throw new Error(data.error || `Request failed (${response.status})`);
+        loading.remove();
+        const aDiv = document.createElement('div'); aDiv.className = 'flex items-start gap-3';
+        aDiv.innerHTML = '<div class="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center shrink-0"><i class="fa-solid fa-robot text-white text-xs"></i></div>';
+        const answer = document.createElement('div'); answer.className = 'ai-answer max-w-[90%] rounded-2xl rounded-tl-none bg-[#151f32] border border-slate-800 p-4 text-sm text-slate-200'; answer.innerHTML = renderAiAnswer(data.reply); aDiv.appendChild(answer); stream.appendChild(aDiv);
+        clearAiAttachment();
+      } catch (err) {
+        loading.remove();
+        const errorBox = document.createElement('div'); errorBox.className = 'ai-error mx-1 rounded-xl border border-red-900 bg-red-950/40 p-3 text-sm text-red-200';
+        errorBox.textContent = (err.name === 'AbortError' ? 'অনুরোধের সময় শেষ হয়েছে।' : err.message || 'AI সংযোগে সমস্যা হয়েছে।') + ' আবার চেষ্টা করুন।';
+        const retry = document.createElement('button'); retry.className = 'ml-2 underline font-semibold'; retry.textContent = 'Retry'; retry.onclick = () => { errorBox.remove(); input.value = raw; sendMessageToZenvXai(); };
+        errorBox.appendChild(retry); stream.appendChild(errorBox);
+      } finally {
+        aiRequestPending = false;
+        if (sendButton) { sendButton.disabled = false; sendButton.innerHTML = '<i class="fa-solid fa-paper-plane text-xs"></i>'; }
+        stream.scrollTop = stream.scrollHeight;
+      }
+    }
+
+    // Same-origin Socket.IO + WebRTC. TURN is recommended for production networks.
+    function initializeRealtime() {
+      if (typeof io !== 'function') return;
+      // Optional TURN servers are configured privately on Render as ICE_SERVERS_JSON.
+      fetch('/api/config/rtc').then(r => r.ok ? r.json() : null).then(config => {
+        if (Array.isArray(config?.iceServers) && config.iceServers.length) rtcIceServers = config.iceServers;
+      }).catch(() => {});
+      try {
+        rtcSocket = io();
+        localDisplayName = localStorage.getItem('zenvx-display-name') || '';
+        if (!localDisplayName) {
+          localDisplayName = (window.prompt('চ্যাটে আপনার প্রদর্শিত নাম লিখুন', 'Student') || 'Student').trim().slice(0, 60) || 'Student';
+          localStorage.setItem('zenvx-display-name', localDisplayName);
+        }
+        const userId = localStorage.getItem('zenvx-user-id') || ('student-' + Math.random().toString(36).slice(2, 12));
+        localStorage.setItem('zenvx-user-id', userId);
+        rtcSocket.on('connect', () => rtcSocket.emit('register-user', { userId, name: localDisplayName, role: 'student' }));
+        rtcSocket.on('online-users', users => {
+          const sel = document.getElementById('onlineContactSelect'); if (!sel) return;
+          const previous = sel.value; sel.innerHTML = '<option value="">অনলাইন ইউজার</option>';
+          (users || []).filter(u => u.socketId !== rtcSocket.id).forEach(u => { const opt = document.createElement('option'); opt.value = u.socketId; opt.textContent = (u.name || 'Student') + (u.role ? ' · ' + u.role : ''); sel.appendChild(opt); });
+          if ([...sel.options].some(o => o.value === previous)) sel.value = previous;
+          selectedPeerSocketId = sel.value;
+        });
+        document.getElementById('onlineContactSelect')?.addEventListener('change', e => { selectedPeerSocketId = e.target.value; });
+        rtcSocket.on('receive-message', msg => { if (msg.senderId !== userId) appendIncomingChatMessage(msg.senderName || 'Student', msg.text || '', msg.time || ''); });
+        rtcSocket.on('incoming-call', data => {
+          incomingCallData = data; currentCallId = data.callId;
+          document.getElementById('incomingCallerName').textContent = data.callerName || 'Student';
+          document.getElementById('incomingCallType').textContent = data.callType === 'video' ? 'ভিডিও কল আসছে…' : 'অডিও কল আসছে…';
+          document.getElementById('incomingCallOverlay').classList.remove('hidden'); document.getElementById('incomingCallOverlay').classList.add('flex'); playRingtone(false);
+        });
+        rtcSocket.on('call-ringing', data => { currentCallId = data.callId; pendingIceCandidates.splice(0).forEach(candidate => rtcSocket.emit('ice-candidate', { callId: currentCallId, candidate })); });
+        rtcSocket.on('call-answered', async data => { if (!rtcPeer || data.callId !== currentCallId) return; stopRingtone(); try { await rtcPeer.setRemoteDescription(data.answer); const queued = remoteIceCandidates.splice(0); for (const c of queued) await rtcPeer.addIceCandidate(c); document.getElementById('callStatusMessage').textContent = 'কল সংযুক্ত হয়েছে।'; } catch (_) {} });
+        rtcSocket.on('ice-candidate', async data => { if (!rtcPeer || data.callId !== currentCallId || !data.candidate) return; try { if (!rtcPeer.remoteDescription) remoteIceCandidates.push(data.candidate); else await rtcPeer.addIceCandidate(data.candidate); } catch (_) {} });
+        rtcSocket.on('call-ended', () => { endActiveCall(false); });
+        rtcSocket.on('call-declined', () => { document.getElementById('callStatusMessage').textContent = 'অন্য ব্যবহারকারী কলটি গ্রহণ করেননি।'; endActiveCall(false); });
+        rtcSocket.on('signaling-error', data => { const el = document.getElementById('callStatusMessage'); if (el) el.textContent = data.message || 'কল সংযোগে সমস্যা হয়েছে।'; });
+      } catch (e) { console.warn('Realtime unavailable', e); }
+    }
+    function appendIncomingChatMessage(name, text, time) {
+      const box = document.getElementById('messengerChatBox'); const d = document.createElement('div'); d.className = 'flex justify-start'; d.dataset.chatMessage = text; d.dataset.chatTime = time;
+      const bubble = document.createElement('div'); bubble.className = 'max-w-[78%] rounded-2xl rounded-bl-none bg-slate-700 px-3.5 py-2 text-xs text-white whitespace-pre-wrap break-words';
+      const sender = document.createElement('strong'); sender.className = 'block text-cyan-300 mb-1'; sender.textContent = name; const body = document.createElement('span'); body.textContent = text; bubble.append(sender, body); d.appendChild(bubble); box.appendChild(d); saveChatHistory(); box.scrollTop = box.scrollHeight;
+    }
+    function createRtcPeer(callType) {
+      rtcPeer = new RTCPeerConnection({ iceServers: rtcIceServers });
+      rtcPeer.onicecandidate = e => { if (!e.candidate || !rtcSocket) return; if (currentCallId) rtcSocket.emit('ice-candidate', { callId: currentCallId, candidate: e.candidate }); else pendingIceCandidates.push(e.candidate); };
+      rtcPeer.ontrack = e => {
+        if (callType === 'video') { const remote = document.getElementById('remoteVideoCallStream'); if (remote && e.streams[0]) { remote.srcObject = e.streams[0]; remote.play().catch(() => {}); } }
+        else { const audio = document.getElementById('remoteCallAudio') || document.createElement('audio'); audio.id = 'remoteCallAudio'; audio.autoplay = true; if (e.streams[0]) audio.srcObject = e.streams[0]; if (!audio.isConnected) document.body.appendChild(audio); }
+      };
+      return rtcPeer;
+    }
+    async function beginOutgoingRtcCall(callType) {
+      // Start the local hardware preview first, even if no peer is selected yet.
+      try {
+        if (!navigator.mediaDevices?.getUserMedia) throw new Error('এই ব্রাউজারে ক্যামেরা/মাইক্রোফোন API নেই। HTTPS URL দিয়ে খুলুন।');
+        if (!activeMediaStream) {
+          activeMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: callType === 'video' ? { facingMode: { ideal: currentFacingMode } } : false });
+        }
+        if (callType === 'video') { const v = document.getElementById('liveVideoCallStream'); v.srcObject = activeMediaStream; await v.play().catch(() => {}); }
+      } catch (e) {
+        const message = e.name === 'NotAllowedError' ? 'ক্যামেরা/মাইক্রোফোন permission Allow করুন।' : (e.message || 'ক্যামেরা/মাইক্রোফোন চালু করা যায়নি।');
+        document.getElementById('callStatusMessage').textContent = message;
+        const cameraStatus = document.getElementById('cameraStatusMessage'); if (cameraStatus) cameraStatus.textContent = message;
+        return;
+      }
+      if (!rtcSocket?.connected) { document.getElementById('callStatusMessage').textContent = 'লোকাল ক্যামেরা/মাইক্রোফোন চালু আছে, কিন্তু রিয়েল-টাইম সার্ভারে সংযোগ নেই।'; return; }
+      selectedPeerSocketId = document.getElementById('onlineContactSelect')?.value || selectedPeerSocketId;
+      if (!selectedPeerSocketId) { document.getElementById('callStatusMessage').textContent = 'লোকাল প্রিভিউ চালু আছে। কল করতে Online User তালিকা থেকে কাউকে নির্বাচন করুন।'; return; }
+      try {
+        const peer = createRtcPeer(callType); activeMediaStream.getTracks().forEach(track => peer.addTrack(track, activeMediaStream));
+        const offer = await peer.createOffer(); await peer.setLocalDescription(offer);
+        playRingtone(false);
+        rtcSocket.emit('call-user', { to: selectedPeerSocketId, callType, offer: peer.localDescription });
+        document.getElementById('callStatusMessage').textContent = 'কল করা হচ্ছে… অন্য ব্যবহারকারীকে অনলাইন থাকতে হবে।';
+      } catch (e) { document.getElementById('callStatusMessage').textContent = e.message || 'কল শুরু করা যায়নি।'; }
+    }
+
+    async function acceptIncomingCall() {
+      const data = incomingCallData; if (!data || !rtcSocket) return;
+      stopRingtone(); document.getElementById('incomingCallOverlay').classList.add('hidden'); document.getElementById('incomingCallOverlay').classList.remove('flex');
+      const videoCall = data.callType === 'video'; toggleModal(videoCall ? 'videoCallOverlay' : 'audioCallOverlay', true);
+      try {
+        activeMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: videoCall ? { facingMode: { ideal: currentFacingMode } } : false });
+        if (videoCall) { const v = document.getElementById('liveVideoCallStream'); v.srcObject = activeMediaStream; await v.play().catch(() => {}); }
+        const peer = createRtcPeer(data.callType); activeMediaStream.getTracks().forEach(track => peer.addTrack(track, activeMediaStream));
+        await peer.setRemoteDescription(data.offer);
+        const queued = remoteIceCandidates.splice(0); for (const c of queued) await peer.addIceCandidate(c);
+        const answer = await peer.createAnswer(); await peer.setLocalDescription(answer);
+        rtcSocket.emit('answer-call', { callId: data.callId, answer: peer.localDescription });
+        document.getElementById('callStatusMessage').textContent = 'কল সংযুক্ত হয়েছে।'; incomingCallData = null;
+      } catch (e) { document.getElementById('callStatusMessage').textContent = e.message || 'কল গ্রহণ করা যায়নি।'; endActiveCall(); }
+    }
+    function declineIncomingCall() {
+      stopRingtone(); if (incomingCallData && rtcSocket) rtcSocket.emit('decline-call', { callId: incomingCallData.callId });
+      incomingCallData = null; document.getElementById('incomingCallOverlay').classList.add('hidden'); document.getElementById('incomingCallOverlay').classList.remove('flex');
+    }
+
+    // Messenger & Real Hardware Audio/Video Calls
+    function selectChatContact(name, status, avatar) {
+      document.getElementById('activeChatName').innerText = name;
+      document.getElementById('activeChatStatus').innerText = status;
+      document.getElementById('activeChatAvatar').src = avatar;
+      document.getElementById('audioCallTitle').innerText = name;
+      document.getElementById('audioCallAvatar').src = avatar;
+      document.getElementById('videoCallPartner').innerText = name;
+      document.getElementById('videoCallRemoteThumb').src = avatar;
+    }
+
+    const CHAT_STORAGE_KEY = 'zenvx-study-chat-v1';
+    function saveChatHistory() {
+      try {
+        const rows = Array.from(document.querySelectorAll('#messengerChatBox [data-chat-message]')).map(el => ({ text: el.dataset.chatMessage || '', time: el.dataset.chatTime || '' })).slice(-200);
+        localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(rows));
+      } catch (_) { /* private browsing/storage limits */ }
+    }
+    function restoreChatHistory() {
+      try {
+        const rows = JSON.parse(localStorage.getItem(CHAT_STORAGE_KEY) || '[]');
+        const box = document.getElementById('messengerChatBox');
+        rows.forEach(row => appendChatMessage(row.text, row.time, false));
+        box.scrollTop = box.scrollHeight;
+      } catch (_) {}
+    }
+    function appendChatMessage(text, time = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), persist = true) {
+      const box = document.getElementById('messengerChatBox');
+      const d = document.createElement('div'); d.className = 'flex justify-end'; d.dataset.chatMessage = text; d.dataset.chatTime = time;
+      const bubble = document.createElement('div'); bubble.className = 'max-w-[78%] rounded-2xl rounded-br-none bg-blue-600 px-3.5 py-2 text-xs text-white whitespace-pre-wrap break-words'; bubble.textContent = text;
+      const stamp = document.createElement('span'); stamp.className = 'block text-[9px] opacity-70 mt-1'; stamp.textContent = time; bubble.appendChild(stamp); d.appendChild(bubble); box.appendChild(d);
+      if (persist) saveChatHistory();
+      box.scrollTop = box.scrollHeight;
+    }
+    function sendMessengerText() {
+      const inp = document.getElementById('messengerInput'); const txt = inp.value.trim();
+      if (!txt) return;
+      appendChatMessage(txt);
+      if (rtcSocket?.connected) rtcSocket.emit('send-message', { text: txt, senderName: localDisplayName });
+      inp.value = '';
+    }
+
+    let ringtoneContext = null, ringtoneTimer = null;
+    function saveRingtoneChoice(value) { const select = document.getElementById('ringtoneSelect'); if (select) select.dataset.userChanged = '1'; try { localStorage.setItem('zenvx-ringtone', value); } catch (_) {} }
+    function stopRingtone() { if (ringtoneTimer) clearInterval(ringtoneTimer); ringtoneTimer = null; }
+    function playRingtone(test = false) {
+      stopRingtone();
+      const select = document.getElementById('ringtoneSelect');
+      const savedMode = localStorage.getItem('zenvx-ringtone');
+      if (select && savedMode && !select.dataset.userChanged) select.value = savedMode;
+      const mode = select?.value || savedMode || 'classic';
+      if (mode === 'silent') return;
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext; if (!AudioCtx) return;
+        ringtoneContext = ringtoneContext || new AudioCtx(); if (ringtoneContext.state === 'suspended') ringtoneContext.resume();
+        const pattern = mode === 'soft' ? [523,659] : mode === 'digital' ? [880,660,880] : [740,880];
+        const playTone = () => pattern.forEach((freq, i) => {
+          const osc = ringtoneContext.createOscillator(), gain = ringtoneContext.createGain(); osc.type = mode === 'digital' ? 'square' : 'sine'; osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.0001, ringtoneContext.currentTime + i * 0.16); gain.gain.exponentialRampToValueAtTime(0.12, ringtoneContext.currentTime + i * 0.16 + 0.02); gain.gain.exponentialRampToValueAtTime(0.0001, ringtoneContext.currentTime + i * 0.16 + 0.13);
+          osc.connect(gain); gain.connect(ringtoneContext.destination); osc.start(ringtoneContext.currentTime + i * 0.16); osc.stop(ringtoneContext.currentTime + i * 0.16 + 0.15);
+        });
+        playTone(); if (!test) ringtoneTimer = setInterval(playTone, 1800);
+      } catch (_) {}
+    }
+    function startAudioCall() {
+      pauseAllPlayingMedia(); toggleModal('audioCallOverlay', true);
+      document.getElementById('callStatusMessage').textContent = 'অডিও কল সংযোগের চেষ্টা চলছে…';
+      const saved = localStorage.getItem('zenvx-ringtone'); const sel = document.getElementById('ringtoneSelect'); if (saved && sel) sel.value = saved;
+      let s = 0; clearInterval(callTimerInterval);
+      callTimerInterval = setInterval(() => { s++; document.getElementById('audioCallTimer').innerText = `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; }, 1000);
+      beginOutgoingRtcCall('audio');
+    }
+
+    async function startVideoCall() {
+      pauseAllPlayingMedia(); toggleModal('videoCallOverlay', true);
+      const status = document.getElementById('cameraStatusMessage'); status.textContent = 'ক্যামেরার অনুমতি চাওয়া হচ্ছে…';
+      try {
+        if (!navigator.mediaDevices?.getUserMedia) throw new Error('এই ব্রাউজারে ক্যামেরা API নেই। HTTPS URL দিয়ে খুলুন।');
+        status.textContent = 'ক্যামেরা/মাইক্রোফোন অনুমতি ও কল সংযোগ প্রস্তুত হচ্ছে…';
+        await beginOutgoingRtcCall('video');
+        if (activeMediaStream?.getVideoTracks().length) status.textContent = 'ক্যামেরা চালু আছে। অন্য ব্যবহারকারী রিসিভ করলে remote video যুক্ত হবে।';
+      } catch (e) { status.textContent = e.name === 'NotAllowedError' ? 'ক্যামেরা/মাইক্রোফোন অনুমতি বন্ধ। Browser Settings থেকে Allow করুন।' : e.name === 'NotFoundError' ? 'ক্যামেরা বা মাইক্রোফোন পাওয়া যায়নি।' : (e.message || 'ক্যামেরা চালু হয়নি। HTTPS ও permission পরীক্ষা করুন।'); }
+    }
+
+    async function switchCameraFacingMode() {
+      currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
+      if (!rtcPeer) { stopActiveHardwareStreams(); await startVideoCall(); return; }
+      try {
+        const replacement = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: currentFacingMode } }, audio: false });
+        const newTrack = replacement.getVideoTracks()[0];
+        const sender = rtcPeer.getSenders().find(x => x.track?.kind === 'video');
+        if (sender && newTrack) await sender.replaceTrack(newTrack);
+        const oldTrack = activeMediaStream?.getVideoTracks()[0]; if (oldTrack) { oldTrack.stop(); activeMediaStream.removeTrack(oldTrack); }
+        activeMediaStream?.addTrack(newTrack);
+        const video = document.getElementById('liveVideoCallStream'); video.srcObject = activeMediaStream;
+      } catch (e) { document.getElementById('cameraStatusMessage').textContent = e.message || 'ক্যামেরা বদলানো যায়নি।'; }
+    }
+
+    function toggleAudioMute(btn) {
+      btn.classList.toggle('bg-red-600');
+      if (activeMediaStream) activeMediaStream.getAudioTracks().forEach(t => t.enabled = !t.enabled);
+    }
+
+    function stopActiveHardwareStreams() {
+      if (activeMediaStream) {
+        activeMediaStream.getTracks().forEach(t => t.stop());
+        activeMediaStream = null;
+      }
+    }
+
+    function endActiveCall(notifyPeer = true) {
+      clearInterval(callTimerInterval); stopRingtone();
+      if (notifyPeer && rtcSocket && currentCallId) rtcSocket.emit('end-call', { callId: currentCallId });
+      if (rtcPeer) { try { rtcPeer.close(); } catch (_) {} rtcPeer = null; }
+      currentCallId = null; pendingIceCandidates = []; remoteIceCandidates = [];
+      const remoteVideo = document.getElementById('remoteVideoCallStream'); if (remoteVideo) remoteVideo.srcObject = null;
+      const remoteAudio = document.getElementById('remoteCallAudio'); if (remoteAudio) { remoteAudio.srcObject = null; remoteAudio.remove(); }
+      stopActiveHardwareStreams();
+      toggleModal('audioCallOverlay', false);
+      toggleModal('videoCallOverlay', false);
+    }
+
+    try { restoreChatHistory(); } catch (_) {}
+    try { initializeRealtime(); } catch (_) {}
+
+    // EduTube: official YouTube Data API search + compliant embedded playback.
+    let youtubeItems = [];
+    let youtubeNextPageToken = null;
+    let youtubeQuery = 'HSC Physics Calculus Bangla';
+    let youtubeLoading = false;
+    let youtubeLastRequestedPageToken = null;
+    let activeYoutubePlayer = null;
+    let shortsObserver = null;
+
+    function pauseAllPlayingMedia(except = null) {
+      document.querySelectorAll('video').forEach(v => { if (v !== except && v.id !== 'liveVideoCallStream' && v.id !== 'aiCameraVideo') v.pause(); });
+      document.querySelectorAll('iframe.youtube-player').forEach(frame => {
+        if (frame !== except && frame.contentWindow) frame.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
+      });
+    }
+
+    function youtubeToolbar() {
+      return `<div class="sticky top-0 z-10 bg-[#101010] border-b border-neutral-800 p-2 flex gap-2"><button onclick="switchSocialSubTab('messenger')" aria-label="Back" class="w-10 h-10 shrink-0 rounded-xl bg-neutral-800 text-white"><i class="fa-solid fa-arrow-left"></i></button><form class="flex-1 flex gap-2" onsubmit="event.preventDefault(); searchYoutube(document.getElementById('youtubeSearchInput').value)"><input id="youtubeSearchInput" value="${escapeHtml(youtubeQuery)}" placeholder="YouTube-এ খুঁজুন" class="min-w-0 flex-1 rounded-xl bg-neutral-900 border border-neutral-700 px-3 text-sm text-white"/><button class="w-10 rounded-xl bg-red-600 text-white" aria-label="Search"><i class="fa-solid fa-magnifying-glass"></i></button></form></div>`;
+    }
+
+    async function searchYoutube(query, append = false, pageToken = null) {
+      const q = String(query || '').trim(); if (!q || youtubeLoading) return;
+      youtubeLoading = true; youtubeQuery = q;
+      const list = document.getElementById('youtubeFeedList');
+      if (!append) { pauseAllPlayingMedia(); youtubeItems = []; youtubeLastRequestedPageToken = null; list.innerHTML = youtubeToolbar() + '<div class="p-8 text-center text-sm text-neutral-300"><i class="fa-solid fa-spinner fa-spin mr-2"></i>ভিডিও খোঁজা হচ্ছে…</div>'; }
+      if (append) youtubeLastRequestedPageToken = pageToken || null;
+      try {
+        const url = new URL('/api/edutube/feed', location.origin); url.searchParams.set('q', q); if (pageToken) url.searchParams.set('pageToken', pageToken);
+        const response = await fetch(url); const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.error || 'YouTube search failed');
+        youtubeItems = append ? youtubeItems.concat(data.items || []) : (data.items || []);
+        youtubeNextPageToken = data.nextPageToken || null;
+        renderYoutubeFeed(append);
+      } catch (e) {
+        if (!append) list.innerHTML = youtubeToolbar();
+        const error = document.createElement('div'); error.className = 'p-6 text-center text-sm text-red-300'; error.textContent = e.message || 'ভিডিও লোড করা যায়নি।';
+        const retry = document.createElement('button'); retry.className = 'block mx-auto mt-3 px-4 py-2 rounded-lg bg-neutral-800 text-white'; retry.textContent = 'আবার চেষ্টা করুন'; retry.onclick = () => searchYoutube(youtubeQuery); error.appendChild(retry); list.appendChild(error);
+      } finally { youtubeLoading = false; }
+    }
+
+    function handleYoutubeInfiniteScroll(element) {
+      if (!element || youtubeLoading || !youtubeNextPageToken) return;
+      if (element.scrollTop + element.clientHeight >= element.scrollHeight - 420) {
+        const token = youtubeNextPageToken;
+        if (token && token !== youtubeLastRequestedPageToken) searchYoutube(youtubeQuery, true, token);
+      }
+    }
+
+    function renderYoutubeFeed(append = false) {
+      const list = document.getElementById('youtubeFeedList');
+      if (!append) list.innerHTML = youtubeToolbar();
+      list.querySelector('.yt-results')?.remove();
+      list.querySelector('.yt-more')?.remove();
+      const results = document.createElement('div'); results.className = 'yt-results';
+      if (!youtubeItems.length) results.innerHTML = '<p class="p-8 text-center text-sm text-neutral-400">কোনো ভিডিও পাওয়া যায়নি। অন্য শব্দ দিয়ে খুঁজুন।</p>';
+      youtubeItems.forEach(item => {
+        const id = item?.id?.videoId; if (!id) return;
+        const snippet = item.snippet || {};
+        const row = document.createElement('article'); row.className = 'yt-video-row';
+        const thumbWrap = document.createElement('button'); thumbWrap.className = 'yt-thumb-wrap text-left'; thumbWrap.setAttribute('aria-label', 'ভিডিও চালান');
+        const thumb = document.createElement('img'); thumb.src = snippet.thumbnails?.high?.url || snippet.thumbnails?.medium?.url || snippet.thumbnails?.default?.url || ''; thumb.alt = ''; thumb.loading = 'lazy';
+        const playBadge = document.createElement('span'); playBadge.className = 'yt-play-badge'; playBadge.innerHTML = '<i class="fa-solid fa-play mr-1"></i>Play'; thumbWrap.append(thumb,playBadge); thumbWrap.onclick = () => playYoutubeVideo(id, row);
+        const meta = document.createElement('div'); meta.className = 'yt-video-meta';
+        const avatar = document.createElement('div'); avatar.className = 'yt-channel-dot'; avatar.textContent = String(snippet.channelTitle || 'Y').trim().charAt(0).toUpperCase();
+        const details = document.createElement('div'); details.className = 'min-w-0 flex-1';
+        const title = document.createElement('h4'); title.className = 'yt-video-title'; title.textContent = snippet.title || 'YouTube video';
+        const channel = document.createElement('p'); channel.className = 'yt-video-channel'; channel.textContent = (snippet.channelTitle || 'YouTube') + ' · YouTube';
+        details.append(title,channel); meta.append(avatar,details);
+        const menu = document.createElement('button'); menu.className = 'text-neutral-400 px-2 self-start'; menu.setAttribute('aria-label','More options'); menu.innerHTML = '<i class="fa-solid fa-ellipsis-vertical"></i>'; meta.append(menu);
+        row.append(thumbWrap,meta); results.appendChild(row);
+      });
+      list.appendChild(results);
+      if (youtubeNextPageToken) { const more = document.createElement('button'); more.className = 'yt-more w-full p-4 text-sm text-white bg-[#181818]'; more.textContent = 'আরও ভিডিও'; more.onclick = () => searchYoutube(youtubeQuery, true, youtubeNextPageToken); list.appendChild(more); }
+    }
+
+    function playYoutubeVideo(videoId, card) {
+      pauseAllPlayingMedia();
+      document.querySelectorAll('#youtubeFeedList .youtube-active-player').forEach(el => el.remove());
+      const player = document.createElement('div'); player.className = 'youtube-active-player fixed inset-0 z-[80] bg-black flex flex-col';
+      const top = document.createElement('div'); top.className = 'h-12 shrink-0 flex items-center px-3 gap-3 bg-neutral-950 text-white';
+      const back = document.createElement('button'); back.className = 'w-9 h-9'; back.innerHTML = '<i class="fa-solid fa-arrow-left"></i>'; back.onclick = () => player.remove();
+      const label = document.createElement('span'); label.className = 'text-sm'; label.textContent = 'EduTube'; top.append(back,label);
+      const frame = document.createElement('iframe'); frame.className = 'youtube-player w-full flex-1'; frame.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&playsinline=1&enablejsapi=1`; frame.title = 'YouTube video player'; frame.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'; frame.allowFullscreen = true; frame.referrerPolicy = 'strict-origin-when-cross-origin';
+      player.append(top,frame); document.body.appendChild(player); activeYoutubePlayer = frame;
+    }
+
+    async function renderShortsFeed() {
+      const box = document.getElementById('shortsFeedContainer');
+      const searchInput = document.getElementById('shortsSearchInput');
+      if (searchInput && !searchInput.value) searchInput.value = youtubeQuery || 'educational science';
+      pauseAllPlayingMedia(); box.innerHTML = '<div class="h-full flex items-center justify-center text-sm text-white"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Shorts খোঁজা হচ্ছে…</div>';
+      try {
+        const q = (searchInput?.value || youtubeQuery || 'educational science').trim();
+        const url = new URL('/api/edutube/feed', location.origin); url.searchParams.set('q', q + ' shorts'); url.searchParams.set('mode', 'shorts');
+        const response = await fetch(url); const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.error || 'Shorts search failed');
+        const items = (data.items || []).filter(item => item?.id?.videoId);
+        box.innerHTML = '';
+        if (!items.length) { box.innerHTML = '<div class="h-full p-8 flex items-center justify-center text-center text-white text-sm">কোনো short-form ভিডিও পাওয়া যায়নি। অন্য শব্দ দিয়ে চেষ্টা করুন।</div>'; return; }
+        items.forEach(item => {
+          const slide = document.createElement('div'); slide.className = 'short-slide relative w-full bg-black';
+          const frame = document.createElement('iframe'); frame.className = 'youtube-player absolute inset-0 w-full h-full'; frame.dataset.videoId = item.id.videoId; frame.title = item.snippet?.title || 'Educational short video'; frame.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'; frame.allowFullscreen = true; frame.referrerPolicy = 'strict-origin-when-cross-origin';
+          const info = document.createElement('div'); info.className = 'shorts-info';
+          const channel = document.createElement('p'); channel.textContent = '@' + (item.snippet?.channelTitle || 'YouTube');
+          const title = document.createElement('p'); title.textContent = item.snippet?.title || ''; info.append(channel,title); slide.append(frame,info); box.appendChild(slide);
+        });
+        if (shortsObserver) shortsObserver.disconnect();
+        shortsObserver = new IntersectionObserver(entries => entries.forEach(entry => {
+          const frame = entry.target.querySelector('iframe'); if (!frame) return;
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.72) {
+            box.querySelectorAll('iframe.youtube-player').forEach(other => { if (other !== frame && other.src) other.contentWindow?.postMessage(JSON.stringify({ event:'command', func:'pauseVideo', args:[] }), '*'); });
+            if (!frame.src) frame.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(frame.dataset.videoId)}?autoplay=1&playsinline=1&enablejsapi=1&controls=1&rel=0`;
+            else frame.contentWindow?.postMessage(JSON.stringify({ event:'command', func:'playVideo', args:[] }), '*');
+          } else if (frame.src) frame.contentWindow?.postMessage(JSON.stringify({ event:'command', func:'pauseVideo', args:[] }), '*');
+        }), { threshold: [0.25,0.72] });
+        box.querySelectorAll('.short-slide').forEach(slide => shortsObserver.observe(slide));
+      } catch (e) { box.innerHTML = `<div class="h-full flex flex-col items-center justify-center p-8 text-center text-sm text-red-300">${escapeHtml(e.message || 'Shorts লোড করা যায়নি।')}<button class="mt-3 px-4 py-2 rounded-lg bg-neutral-800 text-white" onclick="renderShortsFeed()">আবার চেষ্টা করুন</button></div>`; }
+    }
+
+    function switchSocialSubTab(sub) {
+      pauseAllPlayingMedia();
+      document.body.classList.toggle('shorts-mode', sub === 'shorts');
+      document.getElementById('messengerView').classList.toggle('hidden', sub !== 'messenger');
+      document.getElementById('youtubeView').classList.toggle('hidden', sub !== 'youtube');
+      document.getElementById('youtubeView').classList.toggle('flex', sub === 'youtube');
+      document.getElementById('shortsView').classList.toggle('hidden', sub !== 'shorts');
+      if (sub === 'youtube') searchYoutube(youtubeQuery);
+      if (sub === 'shorts') renderShortsFeed();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const mathField = document.getElementById('calcMathField');
+      if (mathField) {
+        mathField.addEventListener('input', syncExpressionFromMathField);
+        mathField.addEventListener('keydown', event => {
+          if (event.key === 'Enter') { event.preventDefault(); pressKey('EQ'); }
+        });
+        mathField.addEventListener('focus', () => { mathField.dataset.expression = expr; });
+      }
+      updateCalculatorScreen();
+      switchMainTab('ai');
+      // Physical keyboard navigation for the calculator; do not steal arrows from text inputs.
+      document.addEventListener('keydown', event => {
+        const calc = document.getElementById('calcModule');
+        if (!calc || calc.classList.contains('hidden')) return;
+        if (event.target && (/INPUT|TEXTAREA|SELECT|MATH-FIELD/.test(event.target.tagName) || event.target.closest?.('math-field'))) return;
+        const keys = { ArrowLeft: 'LEFT', ArrowRight: 'RIGHT', ArrowUp: 'UP', ArrowDown: 'DOWN', Backspace: 'DEL', Escape: 'ESC' };
+        if (keys[event.key]) { event.preventDefault(); if (keys[event.key] === 'ESC') closeCalculatorFullScreen(); else pressKey(keys[event.key]); }
+        else if (event.key === 'Enter' || event.key === '=') { event.preventDefault(); pressKey('EQ'); }
+      });
+    });
+  </script>
+</body>
+</html>

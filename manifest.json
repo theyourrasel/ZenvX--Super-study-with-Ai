@@ -1,0 +1,17 @@
+{
+  "name": "ZenvX Study - Super EdTech App",
+  "short_name": "ZenvX Study",
+  "description": "Full-screen 991EX Scientific Calculator, ZenvXai Tutor, Messenger & EduTube",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#090d16",
+  "theme_color": "#090d16",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3426/3426653.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

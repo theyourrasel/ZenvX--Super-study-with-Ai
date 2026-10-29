@@ -1,0 +1,21 @@
+{
+  "name": "zenvx-study",
+  "version": "3.0.0",
+  "description": "ZenvX Study educational app with Gemini AI, YouTube Data API, scientific calculator, and optional WebRTC calling",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node scripts/check-inline-js.js",
+    "test": "npm run check"
+  },
+  "dependencies": {
+    "@google/genai": "^1.0.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1",
+    "socket.io": "^4.8.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
